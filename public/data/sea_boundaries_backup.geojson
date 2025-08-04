@@ -1,0 +1,73 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Thailand",
+                "type": "countries",
+                "code": "TH"
+            },
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [97.345, 5.62],
+                            [98.503, 8.382],
+                            [99.153, 9.56],
+                            [100.097, 13.412],
+                            [100.018, 20.418],
+                            [97.345, 5.62]
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Cambodia",
+                "type": "countries",
+                "code": "CA"
+            },
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [100.0, 10.0],
+                            [105.0, 10.0],
+                            [105.0, 15.0],
+                            [100.0, 15.0],
+                            [100.0, 10.0]
+                        ]
+                    ]
+                ]
+            }
+        },
+
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Mekong Basin",
+                "type": "basins",
+                "area": 795000
+            },
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [102.17, 22.464],
+                            [106.695, 22.03],
+                            [107.565, 10.42],
+                            [102.925, 10.895],
+                            [102.17, 22.464]
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

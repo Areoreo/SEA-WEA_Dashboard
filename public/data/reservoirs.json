@@ -1,0 +1,49 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "RES001",
+                "name": "Nam Ngum 1",
+                "country": "Laos",
+                "basin": "Mekong",
+                "status": "operational",
+                "type": "reservoir",
+                "height": 75,
+                "length": 468,
+                "capacity": 1088,
+                "designedArea": 370,
+                "mainUse": "Hydropower",
+                "yearCompleted": 1971,
+                "criticalStatus": "critical"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [102.6167, 18.5333]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "RES002",
+                "name": "Pak Mun Dam",
+                "country": "Thailand",
+                "basin": "Mekong",
+                "status": "operational",
+                "type": "dam",
+                "height": 17,
+                "length": 300,
+                "capacity": 136,
+                "designedArea": 60,
+                "mainUse": "Hydropower",
+                "yearCompleted": 1994,
+                "criticalStatus": "non-critical"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [105.4356, 15.2656]
+            }
+        }
+    ]
+}

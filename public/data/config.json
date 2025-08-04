@@ -1,0 +1,30 @@
+{
+    "mapConfig": {
+        "center": [13.0, 105.0],
+        "zoom": 5,
+        "minZoom": 4,
+        "maxZoom": 12
+    },
+    "dataCategories": {
+        "water": {
+            "layers": ["reservoirs", "dams"],
+            "attributes": ["height", "capacity", "area", "mainUse", "status"]
+        },
+        "energy": {
+            "layers": ["hydropower"],
+            "attributes": ["capacity", "annualGeneration", "status", "operator"]
+        }
+    },
+    "statusTypes": {
+        "planned": { "color": "#22c55e", "label": "Planned" },
+        "under-construction": { "color": "#3b82f6", "label": "Under Construction" },
+        "operational": { "color": "#6b7280", "label": "Operational" },
+        "postponed": { "color": "#f59e0b", "label": "Postponed" },
+        "cancelled": { "color": "#ef4444", "label": "Cancelled" }
+    },
+    "criticalityLevels": {
+        "critical": { "color": "#dc2626", "label": "Critical" },
+        "non-critical": { "color": "#16a34a", "label": "Non-critical" },
+        "unknown": { "color": "#6b7280", "label": "Unknown" }
+    }
+}

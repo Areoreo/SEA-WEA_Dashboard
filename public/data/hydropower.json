@@ -1,0 +1,41 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "HYD001",
+                "name": "Xayaburi",
+                "country": "Laos",
+                "basin": "Mekong",
+                "status": "under-construction",
+                "capacity": 1285,
+                "annualGeneration": 7370,
+                "commissionYear": 2024,
+                "operator": "Xayaburi Power Company Limited"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [101.7833, 19.25]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": "HYD002",
+                "name": "Don Sahong",
+                "country": "Laos",
+                "basin": "Mekong",
+                "status": "planned",
+                "capacity": 240,
+                "annualGeneration": 1400,
+                "commissionYear": 2025,
+                "operator": "Don Sahong Power Company"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [105.95, 13.95]
+            }
+        }
+    ]
+}
