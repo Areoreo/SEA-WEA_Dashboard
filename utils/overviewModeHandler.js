@@ -11,6 +11,9 @@
  * @param {string} overviewMode - "current" 或 "future"
  * @returns {Array} 过滤后的数据
  */
+
+import { useState, useEffect, useMemo } from "react";
+
 export function filterDataByOverview(allData, overviewMode) {
     if (!allData || !Array.isArray(allData)) {
         return [];
@@ -138,7 +141,7 @@ export function useOverviewMode(initialData, options) {
     // 初始化basin系统
     useEffect(() => {
         const initBasinSystem = async () => {
-            const { getBasinSystem } = await import("./simplifiedBasinAssignment");
+            const { getBasinSystem } = await import("./basinAssignment");
             const system = await getBasinSystem();
             setBasinSystem(system);
         };

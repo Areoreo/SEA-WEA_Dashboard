@@ -144,224 +144,224 @@
 /* Main Use Visualization Styles */
 /* Add this to your existing styles/core/components/map.css or equivalent */
 
-/* Main Use Marker Styles */
-.custom-main-use-marker {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
+// /* Main Use Marker Styles */
+// .custom-main-use-marker {
+//     background: transparent !important;
+//     border: none !important;
+//     box-shadow: none !important;
+// }
 
-.custom-main-use-marker div {
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
+// .custom-main-use-marker div {
+//     transition: all 0.2s ease;
+//     cursor: pointer;
+// }
 
-.custom-main-use-marker:hover div {
-    transform: scale(1.2);
-    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4));
-}
+// .custom-main-use-marker:hover div {
+//     transform: scale(1.2);
+//     filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4));
+// }
 
-/* Enhanced Regular Marker Styles */
-.custom-reservoir-marker {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
+// /* Enhanced Regular Marker Styles */
+// .custom-reservoir-marker {
+//     background: transparent !important;
+//     border: none !important;
+//     box-shadow: none !important;
+// }
 
-.custom-reservoir-marker .marker-dot:hover {
-    transform: scale(1.1);
-    opacity: 1 !important;
-}
+// .custom-reservoir-marker .marker-dot:hover {
+//     transform: scale(1.1);
+//     opacity: 1 !important;
+// }
 
-/* Basin Bar Chart Marker Styles */
-.basin-bar-chart-marker {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
+// /* Basin Bar Chart Marker Styles */
+// .basin-bar-chart-marker {
+//     background: transparent !important;
+//     border: none !important;
+//     box-shadow: none !important;
+// }
 
-.basin-bar-chart-marker:hover {
-    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
-}
+// .basin-bar-chart-marker:hover {
+//     filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+// }
 
-/* Main Use Legend Styles */
-.main-use-legend {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
+// /* Main Use Legend Styles */
+// .main-use-legend {
+//     background: rgba(255, 255, 255, 0.95);
+//     backdrop-filter: blur(8px);
+//     border: 1px solid rgba(0, 0, 0, 0.1);
+//     border-radius: 8px;
+//     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+// }
 
-.main-use-legend h3 {
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-}
+// .main-use-legend h3 {
+//     border-bottom: 1px solid #e5e7eb;
+//     padding-bottom: 8px;
+//     margin-bottom: 12px;
+// }
 
-/* Symbol Display Styles */
-.main-use-symbol {
-    font-family: "Arial Unicode MS", Arial, sans-serif;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    text-align: center;
-    line-height: 20px;
-}
+// /* Symbol Display Styles */
+// .main-use-symbol {
+//     font-family: "Arial Unicode MS", Arial, sans-serif;
+//     font-weight: bold;
+//     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+//     display: inline-block;
+//     width: 20px;
+//     height: 20px;
+//     text-align: center;
+//     line-height: 20px;
+// }
 
-.main-use-symbol.critical {
-    color: #ef4444; /* Red for critical */
-}
+// .main-use-symbol.critical {
+//     color: #ef4444; /* Red for critical */
+// }
 
-.main-use-symbol.non-critical {
-    color: #3b82f6; /* Blue for non-critical */
-}
+// .main-use-symbol.non-critical {
+//     color: #3b82f6; /* Blue for non-critical */
+// }
 
-.marker-dot:hover {
-    transform: scale(1.2);
-    opacity: 1 !important;
-}
+// .marker-dot:hover {
+//     transform: scale(1.2);
+//     opacity: 1 !important;
+// }
 
-.custom-reservoir-marker {
-    background: transparent !important;
-    border: none !important;
-}
+// .custom-reservoir-marker {
+//     background: transparent !important;
+//     border: none !important;
+// }
 
-.custom-reservoir-marker .marker-dot {
-    transition: all 0.2s ease;
-}
+// .custom-reservoir-marker .marker-dot {
+//     transition: all 0.2s ease;
+// }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .main-use-legend {
-        font-size: 14px;
-        padding: 12px;
-    }
+// /* Responsive Adjustments */
+// @media (max-width: 768px) {
+//     .main-use-legend {
+//         font-size: 14px;
+//         padding: 12px;
+//     }
 
-    .main-use-symbol {
-        font-size: 14px;
-        width: 18px;
-        height: 18px;
-        line-height: 18px;
-    }
+//     .main-use-symbol {
+//         font-size: 14px;
+//         width: 18px;
+//         height: 18px;
+//         line-height: 18px;
+//     }
 
-    .custom-main-use-marker div {
-        font-size: 14px !important;
-        width: 18px !important;
-        height: 18px !important;
-    }
-}
+//     .custom-main-use-marker div {
+//         font-size: 14px !important;
+//         width: 18px !important;
+//         height: 18px !important;
+//     }
+// }
 
-@media (max-width: 480px) {
-    .main-use-legend {
-        font-size: 12px;
-        padding: 10px;
-    }
+// @media (max-width: 480px) {
+//     .main-use-legend {
+//         font-size: 12px;
+//         padding: 10px;
+//     }
 
-    .main-use-symbol {
-        font-size: 12px;
-        width: 16px;
-        height: 16px;
-        line-height: 16px;
-    }
+//     .main-use-symbol {
+//         font-size: 12px;
+//         width: 16px;
+//         height: 16px;
+//         line-height: 16px;
+//     }
 
-    .custom-main-use-marker div {
-        font-size: 12px !important;
-        width: 16px !important;
-        height: 16px !important;
-    }
-}
+//     .custom-main-use-marker div {
+//         font-size: 12px !important;
+//         width: 16px !important;
+//         height: 16px !important;
+//     }
+// }
 
-/* Animation for smooth transitions */
-.marker-transition {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+// /* Animation for smooth transitions */
+// .marker-transition {
+//     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+// }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .main-use-symbol {
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-        font-weight: 900;
-    }
+// /* High contrast mode support */
+// @media (prefers-contrast: high) {
+//     .main-use-symbol {
+//         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+//         font-weight: 900;
+//     }
 
-    .main-use-legend {
-        border: 2px solid #000;
-        background: #fff;
-    }
-}
+//     .main-use-legend {
+//         border: 2px solid #000;
+//         background: #fff;
+//     }
+// }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    .custom-main-use-marker div,
-    .custom-reservoir-marker .marker-dot,
-    .marker-transition {
-        transition: none;
-    }
+// /* Reduced motion support */
+// @media (prefers-reduced-motion: reduce) {
+//     .custom-main-use-marker div,
+//     .custom-reservoir-marker .marker-dot,
+//     .marker-transition {
+//         transition: none;
+//     }
 
-    .custom-main-use-marker:hover div {
-        transform: none;
-    }
+//     .custom-main-use-marker:hover div {
+//         transform: none;
+//     }
 
-    .custom-reservoir-marker .marker-dot:hover {
-        transform: none;
-    }
-}
+//     .custom-reservoir-marker .marker-dot:hover {
+//         transform: none;
+//     }
+// }
 
-/* Print styles */
-@media print {
-    .main-use-legend {
-        background: white;
-        border: 1px solid #000;
-        box-shadow: none;
-    }
+// /* Print styles */
+// @media print {
+//     .main-use-legend {
+//         background: white;
+//         border: 1px solid #000;
+//         box-shadow: none;
+//     }
 
-    .main-use-symbol.critical {
-        color: #000;
-        font-weight: 900;
-    }
+//     .main-use-symbol.critical {
+//         color: #000;
+//         font-weight: 900;
+//     }
 
-    .main-use-symbol.non-critical {
-        color: #666;
-        font-weight: normal;
-    }
-}
+//     .main-use-symbol.non-critical {
+//         color: #666;
+//         font-weight: normal;
+//     }
+// }
 
-/* Focus styles for accessibility */
-.custom-main-use-marker:focus,
-.custom-reservoir-marker:focus {
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
-}
+// /* Focus styles for accessibility */
+// .custom-main-use-marker:focus,
+// .custom-reservoir-marker:focus {
+//     outline: 2px solid #3b82f6;
+//     outline-offset: 2px;
+// }
 
-/* Tooltip enhancements for main use */
-.leaflet-tooltip-main-use {
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    font-weight: 500;
-}
+// /* Tooltip enhancements for main use */
+// .leaflet-tooltip-main-use {
+//     background: rgba(0, 0, 0, 0.8);
+//     color: white;
+//     border: none;
+//     border-radius: 4px;
+//     padding: 4px 8px;
+//     font-size: 12px;
+//     font-weight: 500;
+// }
 
-.leaflet-tooltip-main-use::before {
-    border-top-color: rgba(0, 0, 0, 0.8);
-}
+// .leaflet-tooltip-main-use::before {
+//     border-top-color: rgba(0, 0, 0, 0.8);
+// }
 
-/* Loading state for markers */
-.marker-loading {
-    opacity: 0.5;
-    animation: pulse 1.5s ease-in-out infinite;
-}
+// /* Loading state for markers */
+// .marker-loading {
+//     opacity: 0.5;
+//     animation: pulse 1.5s ease-in-out infinite;
+// }
 
-@keyframes pulse {
-    0%,
-    100% {
-        opacity: 0.5;
-    }
-    50% {
-        opacity: 0.8;
-    }
-}
+// @keyframes pulse {
+//     0%,
+//     100% {
+//         opacity: 0.5;
+//     }
+//     50% {
+//         opacity: 0.8;
+//     }
+// }
