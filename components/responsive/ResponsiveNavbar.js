@@ -25,11 +25,20 @@ export const ResponsiveNavbar = ({
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const handleOverviewClick = (newOverview) => {
-        updateOption("overview", newOverview);
+    // const handleOverviewClick = (newOverview) => {
+    //     updateOption("overview", newOverview);
+    //     if (isMobile) {
+    //         setMobileMenuOpen(false);
+    //     }
+    // };
+    const handleOverviewClick = (overview) => {
+        updateOption("overview", overview);
         if (isMobile) {
             setMobileMenuOpen(false);
         }
+        // 清除相关选择状态
+        setSelectedMarker(null);
+        setSelectedBasin(null);
     };
 
     return (

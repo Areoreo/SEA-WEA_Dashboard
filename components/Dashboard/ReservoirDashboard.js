@@ -9,7 +9,7 @@ import { ResponsiveSidebar } from "../responsive/ResponsiveSidebar";
 // import MainUseLegend from "../Map/MainUseLegend";
 
 import { useOverviewMode } from "../../utils/overviewModeHandler";
-import { getBasinSystem } from "../../utils/BasinAssignment";
+import { getBasinSystem } from "../../utils/basinAssignment";
 
 const ReservoirDashboard = () => {
     const [data, setData] = useState({
@@ -99,30 +99,59 @@ const ReservoirDashboard = () => {
             });
     }, []);
 
-    // Filter logic based on options
-    const filteredData = useMemo(() => {
-        if (!data.features || data.features.length === 0) return [];
+    // First: filter data by options.overview
+    const {
+        overviewMode, // "current" 或 "future"
+        filteredData, // 根据模式过滤的数据
+        modeConfig, // 当前模式的配置
+        stats, // 统计信息
+        basinSystem, // basin系统
+    } = useOverviewMode(data.features, options);
 
-        return data.features.filter((item) => {
+    // Filter logic based on options
+    // const filteredData = useMemo(() => {
+    //     if (!data.features || data.features.length === 0) return [];
+
+    //     return data.features.filter((item) => {
+    //         if (
+    //             options.selectedCountries.length > 0 &&
+    //             !options.selectedCountries.includes(item.country)
+    //         )
+    //             return false;
+    //         if (options.selectedUses.length > 0 && !options.selectedUses.includes(item.main_use))
+    //             return false;
+
+    //         if (options.activeTab === "reservoirs") {
+    //             if (!options.showCritical && item.is_critical_reservoir) return false;
+    //             if (!options.showNonCritical && !item.is_critical_reservoir) return false;
+    //         } else {
+    //             if (!options.showCritical && item.is_critical_hydropower) return false;
+    //             if (!options.showNonCritical && !item.is_critical_hydropower) return false;
+    //         }
+
+    //         return true;
+    //     });
+    // }, [data.features, options]);
+
+    // Second: filter data using other properties
+    const finalFilteredData = useMemo(() => {
+        // 在overview过滤的基础上进行额外的属性过滤
+        return filteredData.filter((item) => {
+            // 应用现有的country, main_use等过滤逻辑
             if (
                 options.selectedCountries.length > 0 &&
                 !options.selectedCountries.includes(item.country)
-            )
+            ) {
                 return false;
-            if (options.selectedUses.length > 0 && !options.selectedUses.includes(item.main_use))
-                return false;
+            }
 
-            if (options.activeTab === "reservoirs") {
-                if (!options.showCritical && item.is_critical_reservoir) return false;
-                if (!options.showNonCritical && !item.is_critical_reservoir) return false;
-            } else {
-                if (!options.showCritical && item.is_critical_hydropower) return false;
-                if (!options.showNonCritical && !item.is_critical_hydropower) return false;
+            if (options.selectedUses.length > 0 && !options.selectedUses.includes(item.main_use)) {
+                return false;
             }
 
             return true;
         });
-    }, [data.features, options]);
+    }, [filteredData, options.selectedCountries, options.selectedUses]);
 
     if (loading) {
         return (
