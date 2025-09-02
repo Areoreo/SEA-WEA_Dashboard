@@ -308,7 +308,7 @@ const MapComponent = ({
         } else {
             // Size based on attribute value (existing logic)
             const minSize = 10;
-            const maxSize = 18;
+            const maxSize = 20;
             const normalizedValue = Math.max(
                 0,
                 Math.min(1, attributeValue / getMaxAttributeValue(selectedAttributes[0]))

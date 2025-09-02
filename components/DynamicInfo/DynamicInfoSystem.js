@@ -789,10 +789,10 @@ export const DynamicInfoPanel = ({ reservoir, onClose, onZoomToReservoir }) => {
             <div className="flex-shrink-0 border-b border-gray-200 p-4">
                 <div className="flex justify-between items-start">
                     <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                        {/* <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
                             <Droplets className="w-5 h-5 text-blue-500" />
                             <span>Dynamic Monitoring - {reservoir.reservoir_name}</span>
-                        </h3>
+                        </h3> */}
                         <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
                             <span className="flex items-center space-x-1">
                                 <Calendar className="w-4 h-4" />
