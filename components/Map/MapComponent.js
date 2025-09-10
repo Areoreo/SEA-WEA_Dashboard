@@ -79,7 +79,7 @@ const MapComponent = ({
         const nonCriticalThreshold = activeTab === "reservoirs" ? "<100MCM" : "0-30MW";
 
         return (
-            <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-4 max-w-xs">
+            <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-4 max-w-xs">
                 <h3 className="font-semibold text-sm mb-3">Main Use Types</h3>
 
                 <div className="mb-4">
@@ -757,7 +757,7 @@ const MapComponent = ({
             )}
 
             {/* Info Panel */}
-            <div className="absolute top-4 right-4 z-[1000] bg-white rounded-lg shadow-lg p-3 text-sm">
+            <div className="absolute top-20 right-4 z-[1000] bg-white rounded-lg shadow-lg p-3 text-sm">
                 <div className="space-y-1">
                     <div className="flex justify-between">
                         <span className="font-medium">Mode:</span>

@@ -794,10 +794,10 @@ export const DynamicInfoPanel = ({ reservoir, onClose, onZoomToReservoir }) => {
                             <span>Dynamic Monitoring - {reservoir.reservoir_name}</span>
                         </h3> */}
                         <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                            <span className="flex items-center space-x-1">
+                            {/* <span className="flex items-center space-x-1">
                                 <Calendar className="w-4 h-4" />
                                 <span>INDEX: {reservoir.INDEX}</span>
-                            </span>
+                            </span> */}
                             {reservoir.commission_year && (
                                 <span>Commission Year: {reservoir.commission_year}</span>
                             )}
@@ -818,14 +818,14 @@ export const DynamicInfoPanel = ({ reservoir, onClose, onZoomToReservoir }) => {
                             <option value="5years">Last 5 Years</option>
                         </select>
 
-                        <button
+                        {/* <button
                             onClick={handleZoomToReservoir}
                             className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors inline-flex items-center space-x-1"
                             title="Zoom to reservoir location on map"
                         >
                             <ZoomIn className="w-3 h-3" />
                             <span>Locate</span>
-                        </button>
+                        </button> */}
 
                         <button
                             onClick={onClose}
