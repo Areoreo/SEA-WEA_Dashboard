@@ -37,8 +37,8 @@ export const ResponsiveNavbar = ({
             setMobileMenuOpen(false);
         }
         // 清除相关选择状态
-        setSelectedMarker(null);
-        setSelectedBasin(null);
+        // setSelectedMarker(null);
+        // setSelectedBasin(null);
     };
 
     return (

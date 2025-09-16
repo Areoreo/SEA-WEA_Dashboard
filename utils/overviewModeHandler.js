@@ -38,12 +38,12 @@ export function filterDataByOverview(allData, overviewMode) {
         return allowedStatuses.includes(item.status);
     });
 
-    console.log(`📊 Overview模式 "${overviewMode}":`, {
-        总数据: allData.length,
-        过滤后: filtered.length,
-        允许状态: allowedStatuses,
-        状态分布: getStatusDistribution(filtered),
-    });
+    // console.log(`📊 Overview模式 "${overviewMode}":`, {
+    //     总数据: allData.length,
+    //     过滤后: filtered.length,
+    //     允许状态: allowedStatuses,
+    //     状态分布: getStatusDistribution(filtered),
+    // });
 
     return filtered;
 }
