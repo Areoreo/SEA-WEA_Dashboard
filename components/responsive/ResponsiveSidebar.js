@@ -244,7 +244,7 @@ export const ResponsiveSidebar = ({
 
                         {/* Add Summary Toggle Selector */}
 
-                        <CountrySelector
+                        {/* <CountrySelector
                             options={options}
                             updateOption={updateOption}
                             availableCountries={availableCountries}
@@ -254,7 +254,7 @@ export const ResponsiveSidebar = ({
                             options={options}
                             updateOption={updateOption}
                             availableUses={availableUses}
-                        />
+                        /> */}
 
                         {/* Info Panel */}
                         {/* <div className="mt-6 p-3 bg-gray-50 rounded text-sm">

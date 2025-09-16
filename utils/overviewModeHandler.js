@@ -11,6 +11,9 @@
  * @param {string} overviewMode - "current" 或 "future"
  * @returns {Array} 过滤后的数据
  */
+
+import { useState, useEffect, useMemo } from "react";
+
 export function filterDataByOverview(allData, overviewMode) {
     if (!allData || !Array.isArray(allData)) {
         return [];
@@ -35,12 +38,12 @@ export function filterDataByOverview(allData, overviewMode) {
         return allowedStatuses.includes(item.status);
     });
 
-    console.log(`📊 Overview模式 "${overviewMode}":`, {
-        总数据: allData.length,
-        过滤后: filtered.length,
-        允许状态: allowedStatuses,
-        状态分布: getStatusDistribution(filtered),
-    });
+    // console.log(`📊 Overview模式 "${overviewMode}":`, {
+    //     总数据: allData.length,
+    //     过滤后: filtered.length,
+    //     允许状态: allowedStatuses,
+    //     状态分布: getStatusDistribution(filtered),
+    // });
 
     return filtered;
 }
@@ -138,7 +141,7 @@ export function useOverviewMode(initialData, options) {
     // 初始化basin系统
     useEffect(() => {
         const initBasinSystem = async () => {
-            const { getBasinSystem } = await import("./simplifiedBasinAssignment");
+            const { getBasinSystem } = await import("./basinAssignment");
             const system = await getBasinSystem();
             setBasinSystem(system);
         };

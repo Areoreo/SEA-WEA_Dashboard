@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SectionContainer } from "@components/Section";
-import { Nav } from "@components/Nav";
+// import { Nav } from "@components/Nav";
+import { ResponsiveNavbar } from "@components/responsive";
 import { ButtonGroup, Button } from "@components/Button";
 import { Icon } from "@iconify/react";
 
@@ -27,13 +28,9 @@ export const Header = () => {
                     </h1>
                 </div>
                 <SectionContainer className="flex items-center ml-auto">
-                    <Nav />
+                    <ResponsiveNavbar />
                     <ButtonGroup className="hidden md:block">
-                        <a
-                            role="button"
-                            href="/dashboard_page"
-                            className="btn btn--secondary ml-4"
-                        >
+                        <a role="button" href="/dashboard_page" className="btn btn--secondary ml-4">
                             Explore Dashboard
                             <Icon icon="material-symbols:arrow-forward-rounded" />
                         </a>
