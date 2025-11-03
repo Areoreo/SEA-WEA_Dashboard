@@ -5,11 +5,11 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
-        "build": "next build && next export",
+        "build": "next build",
         "start": "next start",
         "lint": "next lint",
         "format": "prettier --write .",
-        "export": "next export",
+        "serve": "cd out && python3 -m http.server 8000",
         "deploy": "npm run build && touch out/.nojekyll && gh-pages -d out -t true"
     },
     "dependencies": {
