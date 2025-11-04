@@ -8,6 +8,7 @@ import {
     formatAttributeValue,
     getAttributeUnits,
 } from "../../utils/dataUtils";
+import { getAssetPath } from "../../utils/pathUtils";
 
 // import { ScaleControl, ZoomBasedSizeProvider } from "./MapEnhancement";
 
@@ -174,7 +175,7 @@ const MapComponent = ({
     const loadBoundaryData = async () => {
         try {
             // Try to load boundary data if available
-            const boundariesResponse = await fetch("/data/SEA_boundaries.geojson");
+            const boundariesResponse = await fetch(getAssetPath("/data/SEA_boundaries.geojson"));
             if (boundariesResponse.ok) {
                 const boundaries = await boundariesResponse.json();
                 setMapData(boundaries);

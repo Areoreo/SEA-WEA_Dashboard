@@ -566,6 +566,7 @@ import {
     ZoomIn,
     Download,
 } from "lucide-react";
+import { getAssetPath } from "../../utils/pathUtils";
 
 // Main Dynamic Info panel component
 export const DynamicInfoPanel = ({ reservoir, onClose, onZoomToReservoir }) => {
@@ -598,8 +599,9 @@ export const DynamicInfoPanel = ({ reservoir, onClose, onZoomToReservoir }) => {
 
             for (const fileName of possibleFiles) {
                 try {
-                    console.log(`Trying to load: /data/dynamicData/${fileName}`);
-                    const response = await fetch(`/data/dynamicData/${fileName}`);
+                    const url = getAssetPath(`/data/dynamicData/${fileName}`);
+                    console.log(`Trying to load: ${url}`);
+                    const response = await fetch(url);
 
                     if (response.ok) {
                         csvData = await response.text();

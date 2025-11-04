@@ -5,6 +5,8 @@
  * 这个版本简化了之前复杂的逻辑，直接使用现有的边界文件进行basin分配
  */
 
+import { getAssetPath } from './pathUtils';
+
 /**
  * 点在多边形内算法 (Ray Casting Algorithm)
  * @param {Array} point - [longitude, latitude]
@@ -47,7 +49,7 @@ export class SimplifiedBasinSystem {
 
             // 尝试加载专门的basin边界文件
             try {
-                const response = await fetch("/data/basins_boundary.geojson");
+                const response = await fetch(getAssetPath("/data/basins_boundary.geojson"));
                 if (response.ok) {
                     this.boundaryData = await response.json();
                     console.log("✅ 成功加载basins_boundary.geojson");
@@ -58,7 +60,7 @@ export class SimplifiedBasinSystem {
 
             // 如果没有专门的basin文件，使用SEA_boundary.geojson
             if (!this.boundaryData) {
-                const response = await fetch("/data/SEA_boundary.geojson");
+                const response = await fetch(getAssetPath("/data/SEA_boundary.geojson"));
                 if (response.ok) {
                     this.boundaryData = await response.json();
                     console.log("✅ 成功加载SEA_boundary.geojson作为测试数据");

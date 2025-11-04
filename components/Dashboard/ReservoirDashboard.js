@@ -529,6 +529,7 @@ import MapComponent from "../Map/DynamicMapComponent";
 import { formatAttributeValue, isMeaningfulAttribute } from "../../utils/dataUtils";
 import { useOverviewMode } from "../../utils/overviewModeHandler";
 import DynamicInfoPanel from "../DynamicInfo/DynamicInfoSystem";
+import { getAssetPath } from "../../utils/pathUtils";
 
 // Import responsive components
 import { ResponsiveNavbar } from "../responsive/ResponsiveNavbar";
@@ -541,6 +542,7 @@ const ReservoirDashboard = () => {
         metadata: { filters: { countries: [], main_uses: [] } },
     });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [selectedMarker, setSelectedMarker] = useState(null);
     const [selectedBasin, setSelectedBasin] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -655,7 +657,7 @@ const ReservoirDashboard = () => {
     const loadReservoirMask = async (polyId) => {
         try {
             const response = await fetch(
-                `/data/criticalReservoirsShape/reservoir_${polyId}.geojson`
+                getAssetPath(`/data/criticalReservoirsShape/reservoir_${polyId}.geojson`)
             );
             if (response.ok) {
                 const maskData = await response.json();
@@ -668,14 +670,40 @@ const ReservoirDashboard = () => {
 
     // Load data on component mount
     useEffect(() => {
-        fetch("/data/processed_critical_reservoirs.json")
-            .then((response) => response.json())
+        const isFileProtocol = window.location.protocol === "file:";
+
+        if (isFileProtocol) {
+            console.warn(
+                "⚠️ Running from file:// protocol. Data loading will fail due to CORS restrictions."
+            );
+            setError(
+                "CORS Restriction: Cannot load data from file:// protocol. Please use a web server."
+            );
+            setLoading(false);
+            return;
+        }
+
+        console.log("🔄 Starting data load...");
+        console.log("📍 Current location:", window.location.href);
+        console.log("📂 Data path: ./data/processed_critical_reservoirs.json");
+
+        fetch(getAssetPath("/data/processed_critical_reservoirs.json"))
+            .then((response) => {
+                console.log("📡 Response received:", response.status, response.ok);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then((jsonData) => {
+                console.log("✅ Data loaded successfully:", jsonData.features?.length, "features");
                 setData(jsonData);
                 setLoading(false);
+                setError(null);
             })
             .catch((error) => {
-                console.error("Error loading data:", error);
+                console.error("❌ Error loading data:", error);
+                setError(`Failed to load data: ${error.message}`);
                 setLoading(false);
             });
     }, []);
@@ -703,6 +731,83 @@ const ReservoirDashboard = () => {
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
                     <p className="mt-4 text-gray-600">Loading SEA-WEA Dashboard...</p>
+                    <p className="mt-2 text-xs text-gray-400">Check console for loading details</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        const isFileProtocol = window.location.protocol === "file:";
+        return (
+            <div className="flex items-center justify-center h-screen bg-gray-50">
+                <div className="text-center max-w-2xl p-8 bg-white rounded-lg shadow-lg">
+                    <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-3">
+                        {isFileProtocol ? "File Protocol Detected" : "Error Loading Dashboard"}
+                    </h2>
+                    <p className="text-red-600 font-medium mb-6">{error}</p>
+
+                    {isFileProtocol && (
+                        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-left">
+                            <h3 className="font-bold text-blue-900 mb-2">
+                                🚀 How to Run the Dashboard:
+                            </h3>
+                            <div className="space-y-3 text-sm text-blue-800">
+                                <div>
+                                    <strong>Option 1 - Python (Easiest):</strong>
+                                    <pre className="bg-blue-100 p-2 rounded mt-1 overflow-x-auto">
+                                        <code>cd {"{path-to-out-folder}"}</code>
+                                        {"\n"}
+                                        <code>python3 -m http.server 8000</code>
+                                        {"\n"}
+                                        <code>Then open: http://localhost:8000</code>
+                                    </pre>
+                                </div>
+                                <div>
+                                    <strong>Option 2 - Node.js:</strong>
+                                    <pre className="bg-blue-100 p-2 rounded mt-1">
+                                        <code>npx serve</code>
+                                    </pre>
+                                </div>
+                                <div>
+                                    <strong>Option 3 - PHP:</strong>
+                                    <pre className="bg-blue-100 p-2 rounded mt-1">
+                                        <code>php -S localhost:8000</code>
+                                    </pre>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mb-6 text-left text-sm">
+                        <p className="text-yellow-800">
+                            <strong>Why?</strong> Browsers block data loading from{" "}
+                            <code className="bg-yellow-100 px-1 rounded">file://</code> URLs for
+                            security reasons (CORS policy). A local web server is required.
+                        </p>
+                    </div>
+
+                    {!isFileProtocol && (
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                        >
+                            Retry Loading
+                        </button>
+                    )}
+
+                    <div className="mt-6 pt-6 border-t border-gray-200 text-xs text-gray-500">
+                        <p>
+                            Current protocol:{" "}
+                            <code className="bg-gray-100 px-2 py-1 rounded">
+                                {window.location.protocol}
+                            </code>
+                        </p>
+                        <p className="mt-1">
+                            See <strong>README.txt</strong> in the output folder for more help
+                        </p>
+                    </div>
                 </div>
             </div>
         );
