@@ -2,17 +2,58 @@
  * Get the base path for the application
  * This handles both development (no base path) and production (with base path)
  */
+const envBasePath = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
+let cachedClientBasePath;
+
+function normalizeBasePath(path) {
+    if (!path) return "";
+    const trimmed = path.replace(/^\/|\/$/g, "");
+    if (!trimmed) return "";
+    return `/${trimmed}`;
+}
+
+function deriveBasePathFromAssetPrefix(assetPrefix) {
+    if (!assetPrefix) return "";
+    if (assetPrefix === "." || assetPrefix === "./") return "";
+    if (assetPrefix.startsWith("./")) {
+        return normalizeBasePath(assetPrefix.slice(1));
+    }
+    return normalizeBasePath(assetPrefix);
+}
+
 export function getBasePath() {
-    // In production, Next.js sets the BASE_PATH environment variable
-    // We also check for the __NEXT_DATA__ which contains the build-time config
-    if (typeof window !== 'undefined') {
-        // Client-side: check if __NEXT_DATA__ exists
-        if (window.__NEXT_DATA__?.buildId) {
-            // If we're in production with a base path, return it
-            return process.env.NODE_ENV === 'production' ? '/SEA-WEA_VISUAL' : '';
+    if (typeof window === "undefined") {
+        return envBasePath;
+    }
+
+    if (cachedClientBasePath !== undefined) {
+        return cachedClientBasePath;
+    }
+
+    const assetPrefix = deriveBasePathFromAssetPrefix(window.__NEXT_DATA__?.assetPrefix);
+    if (assetPrefix) {
+        cachedClientBasePath = assetPrefix;
+        return cachedClientBasePath;
+    }
+
+    const scriptWithChunks = document.querySelector('script[src*="_next/static/"]');
+    if (scriptWithChunks) {
+        try {
+            const url = new URL(scriptWithChunks.getAttribute("src"), window.location.href);
+            const beforeNext = url.pathname.split("/_next/")[0];
+            cachedClientBasePath = normalizeBasePath(beforeNext);
+            return cachedClientBasePath;
+        } catch {
+            // ignore and fall back to path-based detection
         }
     }
-    return '';
+
+    const guessedFromPath = window.location.pathname
+        .replace(/\/index(\.html?)?$/, "")
+        .replace(/\/$/, "");
+
+    cachedClientBasePath = normalizeBasePath(guessedFromPath);
+    return cachedClientBasePath;
 }
 
 /**
@@ -22,7 +63,11 @@ export function getBasePath() {
  */
 export function getAssetPath(path) {
     const basePath = getBasePath();
-    // Ensure path starts with /
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+    if (!basePath) {
+        return `.${normalizedPath}`;
+    }
+
     return `${basePath}${normalizedPath}`;
 }

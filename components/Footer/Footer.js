@@ -1,8 +1,7 @@
 import { SectionContainer } from "@components/Section";
-import Link from "next/link";
-import Image from "next/image";
 import { ButtonGroup } from "@components/Button";
 import { Icon } from "@iconify/react";
+import { getAssetPath } from "@utils/pathUtils";
 
 const DATA = [
     // {
@@ -52,6 +51,8 @@ const DATA = [
 export const Footer = () => {
     const date = new Date();
     const year = date.getFullYear();
+    const dashboardHref = getAssetPath("/dashboard_page/");
+    const logoSrc = getAssetPath("/rice_logo.png");
 
     return (
         <footer id="footer" className="bg-white">
@@ -61,21 +62,21 @@ export const Footer = () => {
                     <div className="footer-links mb-12 grid grid-cols-2 gap-8 md:mb-16 md:grid-cols-8 lg:grid-cols-12">
                         <div className="col-span-6">
                             <div className="footer--logo grid gap-8">
-                                <Link href="/dashboard_page">
-                                    <Image
-                                        src="/rice_logo.png"
+                                <a href={dashboardHref} className="inline-block">
+                                    <img
+                                        src={logoSrc}
                                         alt="logo"
                                         className="h-50 w-auto"
                                         height="25"
                                         width="200"
-                                        priority
+                                        loading="lazy"
                                     />
-                                </Link>
+                                </a>
                                 {/* Get Template button; remove if not used */}
                                 <ButtonGroup alignment="left">
                                     <a
                                         role="button"
-                                        href="/dashboard_page"
+                                        href={dashboardHref}
                                         className="btn btn--secondary"
                                     >
                                         Explore Dashboard

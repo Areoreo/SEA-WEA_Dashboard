@@ -2,6 +2,7 @@ import { SectionContainer } from "@components/Section";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { v4 as uuid } from "uuid";
+import { getAssetPath } from "@utils/pathUtils";
 
 const ContentImageData = [
     {
@@ -508,73 +509,78 @@ const ContentImageData = [
 export const ContentImage = () => {
     return (
         <SectionContainer className="process-items mt-16 space-y-16">
-            {ContentImageData.map((item) => (
-                <div
-                    id={item.id}
-                    key={item.id}
-                    // className="process-item--container grid md:grid-cols-2 gap-y-8"
-                    className="process-item--container grid md:grid-cols-2 gap-8 items-center"
-                >
+            {ContentImageData.map((item) => {
+                const imageSrc = getAssetPath(item.image);
+
+                return (
                     <div
-                        className={`process-item--image rounded-full overflow-hidden ${
-                            item.align === "left" ? "md:order-1 md:ml-4 lg:ml-16" : ""
-                        }`}
-                         style={{
-                                    position: "relative",
-                                    width: "70%",
-                                    maxWidth: "512px",
-                                    height: "0px",
-                                    paddingBottom: "70%", 
-                                    borderRadius: "50%",
-                                    boxShadow: "inset -20px -20px 60px rgba(0, 0, 0, 0.2), inset 20px 20px 60px rgba(255, 255, 255, 0.5), 0px 0px 30px rgba(0, 0, 0, 0.1)",
-                                    background: "linear-gradient(145deg, #e6e6e6, #ffffff)"
-                                }}
+                        id={item.id}
+                        key={item.id}
+                        // className="process-item--container grid md:grid-cols-2 gap-y-8"
+                        className="process-item--container grid md:grid-cols-2 gap-8 items-center"
                     >
-                        <Image
-                            src={item.image}
-                            layout="fill"
-                            objectFit="cover"
-                            alt="Process Banner 1"
+                        <div
+                            className={`process-item--image rounded-full overflow-hidden ${
+                                item.align === "left" ? "md:order-1 md:ml-4 lg:ml-16" : ""
+                            }`}
                             style={{
+                                position: "relative",
+                                width: "70%",
+                                maxWidth: "512px",
+                                height: "0px",
+                                paddingBottom: "70%",
                                 borderRadius: "50%",
-                                transform: "translateZ(30px)"
+                                boxShadow:
+                                    "inset -20px -20px 60px rgba(0, 0, 0, 0.2), inset 20px 20px 60px rgba(255, 255, 255, 0.5), 0px 0px 30px rgba(0, 0, 0, 0.1)",
+                                background: "linear-gradient(145deg, #e6e6e6, #ffffff)"
                             }}
-                        />
-                    </div>
-                    <div
-                        className={`process-item--content ${
-                            item.align === "left"
-                                ? "md:pr-16 lg:pr-24 xl:pr-32 ml-auto"
-                                : "md:pl-16 lg:pl-24 xl:pl-32  mr-auto"
-                        } my-auto content text-black/60`}
-                    >
-                        <h3 className="mb-6 h4 md:h3 font-semibold text-black">
-                            {item.title}
-                        </h3>
-                        {typeof item.content === 'string' ? (
-                            <p>{item.content}</p>
+                        >
+                            <Image
+                                src={imageSrc}
+                                layout="fill"
+                                objectFit="cover"
+                                alt="Process Banner 1"
+                                style={{
+                                    borderRadius: "50%",
+                                    transform: "translateZ(30px)"
+                                }}
+                            />
+                        </div>
+                        <div
+                            className={`process-item--content ${
+                                item.align === "left"
+                                    ? "md:pr-16 lg:pr-24 xl:pr-32 ml-auto"
+                                    : "md:pl-16 lg:pl-24 xl:pl-32  mr-auto"
+                            } my-auto content text-black/60`}
+                        >
+                            <h3 className="mb-6 h4 md:h3 font-semibold text-black">
+                                {item.title}
+                            </h3>
+                            {typeof item.content === "string" ? (
+                                <p>{item.content}</p>
                             ) : (
-                            <div>{item.content}</div>
-                        )}
-                        <ul className="process-item--list space-y-3">
-                            {item.listItems?.length &&
-                                item.listItems.map((listItem) => (
-                                    <li
-                                        id={listItem.id}
-                                        key={listItem.id}
-                                        className="inline-grid grid-flow-col-dense"
-                                    >
-                                        <Icon
-                                            icon="ph:seal-check-bold"
-                                            className="w-6 h-6 text-secondary-500 mr-2"
-                                        />
-                                        {listItem.content}
-                                    </li>
-                                ))}
-                        </ul>
+                                <div>{item.content}</div>
+                            )}
+                            <ul className="process-item--list space-y-3">
+                                {item.listItems?.length &&
+                                    item.listItems.map((listItem) => (
+                                        <li
+                                            id={listItem.id}
+                                            key={listItem.id}
+                                            className="inline-grid grid-flow-col-dense"
+                                        >
+                                            <Icon
+                                                icon="ph:seal-check-bold"
+                                                className="w-6 h-6 text-secondary-500 mr-2"
+                                            />
+                                            {listItem.content}
+                                        </li>
+                                    ))}
+                            </ul>
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </SectionContainer>
     );
 };

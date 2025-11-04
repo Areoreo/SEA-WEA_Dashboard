@@ -3,16 +3,25 @@
 const path = require("path");
 
 // GitHub Pages deployment configuration
-// Repository name must match the basePath and assetPrefix
+// Allows optional NEXT_PUBLIC_BASE_PATH (e.g. repo name) while defaulting to relative assets
 const isProd = process.env.NODE_ENV === 'production';
-const repoName = 'SEA-WEA_VISUAL'; // Change this to match your actual GitHub repo name
+const envBasePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const normalizedBasePath = envBasePath
+    ? `/${envBasePath.replace(/^\/|\/$/g, '')}`
+    : '';
+
+const resolveAssetPrefix = () => {
+    if (!isProd) return '';
+    if (normalizedBasePath) return `${normalizedBasePath}/`;
+    return './';
+};
 
 const nextConfig = {
     reactStrictMode: true,
     output: "export",
     // For GitHub Pages: https://username.github.io/repo-name/
-    basePath: isProd ? `/${repoName}` : '',
-    assetPrefix: isProd ? `/${repoName}/` : '',
+    basePath: isProd ? normalizedBasePath : '',
+    assetPrefix: resolveAssetPrefix(),
     images: {
         unoptimized: true, // Required for static export
     },
@@ -24,7 +33,7 @@ const nextConfig = {
         siteTitle: "SEA-WEA Dashboard",
         siteDescription: "Water and Energy Assessment Dashboard for Southeast Asia",
         siteKeywords: "water, energy, SEA, dashboard, assessment",
-        siteUrl: `https://areoreo.github.io/${repoName}`,
+        siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "",
         twitterHandle: "@your_handle",
     },
     eslint: {

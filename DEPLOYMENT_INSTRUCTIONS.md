@@ -48,25 +48,11 @@ The dashboard should load with all data files accessible.
 
 ## Important Configuration
 
-The following files are configured for GitHub Pages:
+Key files that control path handling:
 
-- `next.config.js`: Sets `basePath` to `/SEA-WEA_VISUAL`
-- `utils/pathUtils.js`: Helper to add correct base path to asset URLs
-- All data fetch calls now use `getAssetPath()` function
-
-### Changing Repository Name
-
-If your GitHub repository name changes, update `next.config.js`:
-
-```javascript
-const repoName = 'SEA-WEA_VISUAL'; // Change this to your new repo name
-```
-
-Then rebuild:
-
-```bash
-npm run build
-```
+- `next.config.js`: exposes an optional `NEXT_PUBLIC_BASE_PATH` override and defaults to fully relative asset URLs.
+- `utils/pathUtils.js`: helper to resolve asset and data URLs at runtime based on the current location.
+- All data fetch calls use `getAssetPath()` to ensure they work from any sub-directory.
 
 ## What's in the Build Output
 
@@ -107,7 +93,7 @@ npx serve out -p 8000
 ### Wrong Base Path
 
 - **Symptom**: URLs don't match your GitHub repo name
-- **Solution**: Update `repoName` in `next.config.js` and rebuild
+- **Solution**: The build now auto-detects the deploy path. If you need to force a specific path (e.g. for previews), set `NEXT_PUBLIC_BASE_PATH` before running the build.
 
 ### Development Mode Issues
 
@@ -119,12 +105,12 @@ npx serve out -p 8000
 
 The following files were updated to support GitHub Pages deployment:
 
-1. `next.config.js` - Added `basePath` and `assetPrefix`
-2. `utils/pathUtils.js` - NEW: Helper for asset paths
-3. `components/DynamicInfo/DynamicInfoSystem.js` - Uses `getAssetPath()`
-4. `components/Map/MapComponent.js` - Uses `getAssetPath()`
-5. `components/Dashboard/ReservoirDashboard.js` - Uses `getAssetPath()`
-6. `utils/basinAssignment.js` - Uses `getAssetPath()`
+1. `next.config.js` - Defaults to relative asset URLs with optional base-path override.
+2. `utils/pathUtils.js` - Runtime helper for base-path detection across assets and fetch calls.
+3. `components/DynamicInfo/DynamicInfoSystem.js` - Uses `getAssetPath()`.
+4. `components/Map/MapComponent.js` - Uses `getAssetPath()`.
+5. `components/Dashboard/ReservoirDashboard.js` - Uses `getAssetPath()`.
+6. `utils/basinAssignment.js` - Uses `getAssetPath()`.
 
 ## Notes
 
