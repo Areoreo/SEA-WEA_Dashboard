@@ -1,22 +1,27 @@
-// Research region visual scheme
+// Active main-use types (order drives sidebar chip order).
 export const MAIN_USES = [
     "Hydropower",
     "Irrigation",
     "Water supply",
     "Flood control",
-    "Navigation",
-    "Recreation",
+    "Multiple purpose",
+    "SEAWEA_UNKNOWN",
 ];
 
-// Accessible, distinct color per use. PlayStation palette leans blue — use-type
-// colors distinguish categories but stay in a cool, restrained gamut.
+// UI label overrides for presentation (raw value kept in data).
+export const USE_LABEL = {
+    SEAWEA_UNKNOWN: "Unknown",
+};
+
+// Accessible, distinct color per use — all sit within a cool/neutral gamut to
+// keep the PlayStation voice. "Unknown" is intentionally muted.
 export const USE_COLORS = {
-    Hydropower: "#1eaedb", // cyan — power/electric
-    Irrigation: "#7bc36a", // soft green — seedling
-    "Water supply": "#53b1ff", // light blue — water drop
-    "Flood control": "#ffb454", // warm sand — shield
-    Navigation: "#b388ff", // violet — compass
-    Recreation: "#ff6ea0", // magenta — wave
+    Hydropower: "#1eaedb",
+    Irrigation: "#7bc36a",
+    "Water supply": "#53b1ff",
+    "Flood control": "#ffb454",
+    "Multiple purpose": "#b388ff",
+    SEAWEA_UNKNOWN: "#9aa5b1",
 };
 
 export const USE_COLOR_FALLBACK = "#9aa5b1";
@@ -63,3 +68,22 @@ export function formatNumber(v, decimals = 2) {
     if (Math.abs(v) >= 1000) return Math.round(v).toLocaleString();
     return Number(v.toFixed(decimals)).toLocaleString();
 }
+
+// Basemap catalogue. `light` is default; `dark` kept as a quick A/B alternate.
+export const BASEMAPS = {
+    light: {
+        label: "Light",
+        url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>, <a href="https://carto.com/attributions">CARTO</a>',
+        background: "#eef2f6",
+    },
+    dark: {
+        label: "Dark",
+        url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>, <a href="https://carto.com/attributions">CARTO</a>',
+        background: "#0b0d10",
+    },
+};
+export const DEFAULT_BASEMAP = "light";

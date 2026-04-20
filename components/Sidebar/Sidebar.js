@@ -2,6 +2,7 @@ import React from "react";
 import {
     MAIN_USES,
     USE_COLORS,
+    USE_LABEL,
     COUNTRIES,
     NUMERIC_ATTRIBUTES,
 } from "../../utils/constants";
@@ -190,7 +191,7 @@ export default function Sidebar({ options, update, onOpenSummary }) {
                             color={USE_COLORS[u]}
                             icon={<UseIcon use={u} size={14} />}
                         >
-                            {u}
+                            {USE_LABEL[u] || u}
                         </Chip>
                     ))}
                 </div>

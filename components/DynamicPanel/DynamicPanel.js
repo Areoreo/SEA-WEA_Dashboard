@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { loadDynamicSeries } from "../../utils/dataLoader";
 import { formatNumber } from "../../utils/constants";
 import {
@@ -9,39 +9,116 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend,
 } from "recharts";
 
 const METRICS = [
-    { key: "area_km2", label: "Area (km²)", color: "#53b1ff" },
-    { key: "elevation_m", label: "Elevation (m)", color: "#1eaedb" },
-    { key: "changed_storage_mcm", label: "Storage Δ (MCM)", color: "#0070cc" },
+    { key: "area_km2", label: "Area", unit: "km²", color: "#53b1ff" },
+    { key: "elevation_m", label: "Elevation", unit: "m", color: "#1eaedb" },
+    { key: "changed_storage_mcm", label: "Storage Δ", unit: "MCM", color: "#0070cc" },
 ];
 
-function MetricToggle({ label, color, active, onClick }) {
+// When the panel is narrow we wrap to a second (or third) row instead of
+// squashing each chart horizontally.
+const MIN_CHART_WIDTH = 360;
+
+function Stat({ label, value, unit }) {
     return (
-        <button
-            onClick={onClick}
-            className="inline-flex items-center gap-2 rounded-pill px-3 py-1 text-[13px] font-medium transition border"
-            style={{
-                background: active ? color : "#fff",
-                color: active ? "#fff" : "#1f1f1f",
-                borderColor: active ? "transparent" : "#e4e7eb",
-            }}
-        >
-            <span
-                className="h-2.5 w-2.5 rounded-full inline-block"
-                style={{ background: color }}
-            />
-            {label}
-        </button>
+        <div>
+            <div className="text-[10px] uppercase tracking-[0.08em] text-ps-bodyGray">
+                {label}
+            </div>
+            <div className="text-ps-charcoal font-medium text-[13px]">
+                {formatNumber(value)}
+                {unit && <span className="text-ps-bodyGray font-normal ml-1">{unit}</span>}
+            </div>
+        </div>
     );
 }
 
-export default function DynamicPanel({ station, onClose }) {
+function MetricChart({ metric, data, panelHeight, columns, summary }) {
+    // Each row fills its share of the scroll-area height. Header (~76px) +
+    // outer p-4 padding (32px) + inter-row gap (16px) eats into the budget.
+    const rows = Math.ceil(METRICS.length / columns);
+    const available = Math.max(220, panelHeight - 108);
+    const perRow = (available - (rows - 1) * 16) / rows;
+    // Card chrome: p-4 (32 vertical) + title row (~28) + mb-2 (8).
+    const chartHeight = Math.max(160, perRow - 68);
+
+    return (
+        <div className="bg-white rounded-ps-md border border-[#eceff3] p-4 flex flex-col min-w-0">
+            <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                    <span
+                        className="h-2.5 w-2.5 rounded-full inline-block"
+                        style={{ background: metric.color }}
+                    />
+                    <div
+                        className="text-[15px] font-medium text-ps-charcoal"
+                        style={{ letterSpacing: "-0.1px" }}
+                    >
+                        {metric.label}
+                    </div>
+                    <div className="text-[11px] text-ps-bodyGray">{metric.unit}</div>
+                </div>
+                {summary && (
+                    <div className="flex items-center gap-3">
+                        <Stat label="Min" value={summary.min} />
+                        <Stat label="Avg" value={summary.avg} />
+                        <Stat label="Max" value={summary.max} />
+                    </div>
+                )}
+            </div>
+            <div style={{ width: "100%", height: chartHeight }}>
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                        data={data}
+                        margin={{ top: 6, right: 14, left: 0, bottom: 0 }}
+                        syncId="dynamic-info"
+                    >
+                        <CartesianGrid stroke="#eef1f5" strokeDasharray="3 3" />
+                        <XAxis
+                            dataKey="time"
+                            tick={{ fontSize: 11, fill: "#6b6b6b" }}
+                            minTickGap={40}
+                        />
+                        <YAxis
+                            tick={{ fontSize: 11, fill: "#6b6b6b" }}
+                            width={56}
+                            domain={["auto", "auto"]}
+                        />
+                        <Tooltip
+                            contentStyle={{
+                                borderRadius: 12,
+                                border: "none",
+                                boxShadow: "0 5px 14px rgba(0,0,0,0.14)",
+                                fontSize: 12,
+                            }}
+                            formatter={(v) => [
+                                `${formatNumber(v)} ${metric.unit}`,
+                                metric.label,
+                            ]}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey={metric.key}
+                            stroke={metric.color}
+                            strokeWidth={2}
+                            dot={false}
+                            isAnimationActive
+                            animationDuration={600}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+}
+
+export default function DynamicPanel({ station, onClose, containerRef }) {
     const [series, setSeries] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [active, setActive] = useState(["area_km2", "elevation_m", "changed_storage_mcm"]);
+    const [size, setSize] = useState({ w: 0, h: 0 });
+    const selfRef = useRef(null);
 
     useEffect(() => {
         let alive = true;
@@ -65,16 +142,17 @@ export default function DynamicPanel({ station, onClose }) {
         };
     }, [station.SEAWEA_ID]);
 
-    const chartData = useMemo(
-        () =>
-            (series || []).map((r) => ({
-                time: r.time,
-                area_km2: r.area_km2,
-                elevation_m: r.elevation_m,
-                changed_storage_mcm: r.changed_storage_mcm,
-            })),
-        [series]
-    );
+    // Track inner size to pick columns & chart height.
+    useEffect(() => {
+        const el = selfRef.current;
+        if (!el || typeof ResizeObserver === "undefined") return;
+        const ro = new ResizeObserver(([entry]) => {
+            const { width, height } = entry.contentRect;
+            setSize({ w: width, h: height });
+        });
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
 
     const summary = useMemo(() => {
         if (!series || series.length === 0) return null;
@@ -92,35 +170,40 @@ export default function DynamicPanel({ station, onClose }) {
         return s;
     }, [series]);
 
-    const toggle = (k) =>
-        setActive((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+    // Determine column count: widest layout first, wrap when width falls below
+    // the threshold times the number of charts per row.
+    const columns = useMemo(() => {
+        const w = size.w || 800;
+        if (w >= MIN_CHART_WIDTH * 3 + 48) return 3;
+        if (w >= MIN_CHART_WIDTH * 2 + 32) return 2;
+        return 1;
+    }, [size.w]);
 
     return (
-        <div className="h-full w-full bg-white border-t border-[#eceff3] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-3 border-b border-[#eceff3]">
-                <div>
+        <div
+            ref={selfRef}
+            className="h-full w-full bg-[linear-gradient(180deg,#ffffff,#f5f7fa)] border-t border-[#eceff3] flex flex-col"
+        >
+            <div className="flex items-center justify-between px-6 py-3 border-b border-[#eceff3] bg-white">
+                <div className="min-w-0">
                     <div className="text-[11px] uppercase tracking-[0.12em] text-ps-blue font-semibold">
                         Dynamic Info
                     </div>
                     <h3
-                        className="text-[18px] font-light text-ps-charcoal"
+                        className="text-[18px] font-light text-ps-charcoal truncate"
                         style={{ letterSpacing: "-0.1px" }}
                     >
                         {station.reservoir_name || station.station_name || station.dam_name}
                     </h3>
                 </div>
-                <div className="flex items-center gap-2">
-                    {METRICS.map((m) => (
-                        <MetricToggle
-                            key={m.key}
-                            label={m.label}
-                            color={m.color}
-                            active={active.includes(m.key)}
-                            onClick={() => toggle(m.key)}
-                        />
-                    ))}
+                <div className="flex items-center gap-3">
+                    {series && series.length > 0 && (
+                        <span className="text-[11px] text-ps-bodyGray">
+                            {series.length} observations · hover any chart to sync
+                        </span>
+                    )}
                     <button
-                        className="h-9 w-9 rounded-full bg-[#f1f5f9] hover:bg-[#e2e8f0] text-ps-charcoal flex items-center justify-center ml-2"
+                        className="h-9 w-9 rounded-full bg-[#f1f5f9] hover:bg-[#e2e8f0] text-ps-charcoal flex items-center justify-center"
                         onClick={onClose}
                         aria-label="Close"
                     >
@@ -129,103 +212,34 @@ export default function DynamicPanel({ station, onClose }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-[1fr_280px] flex-1 overflow-hidden">
-                <div className="p-4">
-                    {loading ? (
-                        <div className="h-full w-full flex items-center justify-center text-ps-bodyGray">
-                            Loading time series…
-                        </div>
-                    ) : chartData.length === 0 ? (
-                        <div className="h-full w-full flex items-center justify-center text-ps-bodyGray">
-                            No dynamic data for this station.
-                        </div>
-                    ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                                <CartesianGrid stroke="#eef1f5" strokeDasharray="3 3" />
-                                <XAxis
-                                    dataKey="time"
-                                    tick={{ fontSize: 11, fill: "#6b6b6b" }}
-                                    minTickGap={30}
-                                />
-                                <YAxis
-                                    tick={{ fontSize: 11, fill: "#6b6b6b" }}
-                                    width={60}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        borderRadius: 12,
-                                        border: "none",
-                                        boxShadow: "0 5px 14px rgba(0,0,0,0.14)",
-                                    }}
-                                />
-                                <Legend wrapperStyle={{ fontSize: 12 }} />
-                                {METRICS.filter((m) => active.includes(m.key)).map((m) => (
-                                    <Line
-                                        key={m.key}
-                                        type="monotone"
-                                        dataKey={m.key}
-                                        stroke={m.color}
-                                        strokeWidth={2}
-                                        dot={false}
-                                        name={m.label}
-                                        isAnimationActive
-                                        animationDuration={700}
-                                    />
-                                ))}
-                            </LineChart>
-                        </ResponsiveContainer>
-                    )}
-                </div>
-                <div className="p-4 border-l border-[#eceff3] overflow-y-auto bg-[linear-gradient(180deg,#ffffff,#f5f7fa)]">
-                    <div className="text-[11px] uppercase tracking-[0.12em] text-ps-bodyGray font-semibold">
-                        Statistics
+            <div className="flex-1 overflow-auto p-4">
+                {loading ? (
+                    <div className="h-full w-full flex items-center justify-center text-ps-bodyGray">
+                        Loading time series…
                     </div>
-                    {!summary ? (
-                        <p className="mt-3 text-[13px] text-ps-bodyGray">—</p>
-                    ) : (
-                        METRICS.map((m) => {
-                            const s = summary[m.key];
-                            if (!s) return null;
-                            return (
-                                <div key={m.key} className="mt-4">
-                                    <div className="flex items-center gap-2 text-[13px] font-medium text-ps-charcoal">
-                                        <span
-                                            className="h-2.5 w-2.5 rounded-full inline-block"
-                                            style={{ background: m.color }}
-                                        />
-                                        {m.label}
-                                    </div>
-                                    <div className="mt-1 grid grid-cols-3 gap-2 text-[12px] text-ps-bodyGray">
-                                        <div>
-                                            <div className="text-[10px] uppercase">Min</div>
-                                            <div className="text-ps-charcoal font-medium text-[13px]">
-                                                {formatNumber(s.min)}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="text-[10px] uppercase">Avg</div>
-                                            <div className="text-ps-charcoal font-medium text-[13px]">
-                                                {formatNumber(s.avg)}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="text-[10px] uppercase">Max</div>
-                                            <div className="text-ps-charcoal font-medium text-[13px]">
-                                                {formatNumber(s.max)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                    {series && (
-                        <p className="mt-5 text-[11px] text-ps-bodyGray">
-                            {series.length} observations
-                        </p>
-                    )}
-                </div>
+                ) : !series || series.length === 0 ? (
+                    <div className="h-full w-full flex items-center justify-center text-ps-bodyGray">
+                        No dynamic data for this station.
+                    </div>
+                ) : (
+                    <div
+                        className="grid gap-4"
+                        style={{
+                            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                        }}
+                    >
+                        {METRICS.map((m) => (
+                            <MetricChart
+                                key={m.key}
+                                metric={m}
+                                data={series}
+                                panelHeight={size.h}
+                                columns={columns}
+                                summary={summary?.[m.key]}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,0 +1,211 @@
+import React, { useMemo, useState } from "react";
+import {
+    MAIN_USES,
+    USE_COLORS,
+    USE_LABEL,
+    NUMERIC_ATTRIBUTES,
+    formatNumber,
+} from "../../utils/constants";
+import UseIcon from "../icons/UseIcon";
+
+const SIZE_MIN = 22;
+const SIZE_MAX = 44;
+
+function CriticalSwatch({ size, label, color = "#1eaedb" }) {
+    return (
+        <div className="flex flex-col items-center gap-1">
+            <div
+                className="rounded-full border-2 border-white"
+                style={{
+                    width: size,
+                    height: size,
+                    background: color,
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
+                }}
+            />
+            <span className="text-[10px] text-ps-bodyGray">{label}</span>
+        </div>
+    );
+}
+
+export default function Legend({
+    attributeKey,
+    attributeRange,
+    usesInView,
+    hasCritical,
+    hasNonCritical,
+}) {
+    const [open, setOpen] = useState(true);
+    const attrMeta = NUMERIC_ATTRIBUTES.find((a) => a.key === attributeKey);
+    const attrLabel = attrMeta?.label || attributeKey;
+
+    const uses = useMemo(() => {
+        const set = new Set(usesInView || []);
+        return MAIN_USES.filter((u) => set.has(u));
+    }, [usesInView]);
+
+    const midValue =
+        Number.isFinite(attributeRange?.min) && Number.isFinite(attributeRange?.max)
+            ? (attributeRange.min + attributeRange.max) / 2
+            : null;
+
+    return (
+        <div
+            className="absolute bottom-6 left-4 z-[400] bg-white/95 backdrop-blur rounded-ps-md overflow-hidden"
+            style={{
+                boxShadow: "0 5px 14px rgba(0,0,0,0.14)",
+                width: open ? 260 : "auto",
+            }}
+        >
+            <button
+                className="w-full flex items-center justify-between px-4 py-2 hover:bg-[#f5f7fa] transition"
+                onClick={() => setOpen((o) => !o)}
+                aria-expanded={open}
+            >
+                <div className="flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="5" width="4" height="4" rx="1" fill="#0070cc" />
+                        <rect x="9" y="5" width="12" height="2" rx="1" fill="#6b6b6b" />
+                        <rect x="3" y="11" width="4" height="4" rx="1" fill="#1eaedb" />
+                        <rect x="9" y="11" width="12" height="2" rx="1" fill="#6b6b6b" />
+                        <rect x="3" y="17" width="4" height="4" rx="1" fill="#7bc36a" />
+                        <rect x="9" y="17" width="12" height="2" rx="1" fill="#6b6b6b" />
+                    </svg>
+                    <span className="text-[12px] uppercase tracking-[0.1em] font-semibold text-ps-charcoal">
+                        Legend
+                    </span>
+                </div>
+                <span className="text-ps-bodyGray text-[14px]">{open ? "–" : "+"}</span>
+            </button>
+
+            {open && (
+                <div className="px-4 pb-4 space-y-4">
+                    {/* Station type */}
+                    <div>
+                        <div className="text-[10px] uppercase tracking-[0.08em] text-ps-bodyGray font-semibold">
+                            Station Type
+                        </div>
+                        <div className="mt-2 space-y-2">
+                            {hasCritical && (
+                                <div className="flex items-center gap-3">
+                                    <div className="relative flex-none w-8 h-8 flex items-center justify-center">
+                                        <span
+                                            className="absolute inset-0 rounded-full"
+                                            style={{
+                                                background:
+                                                    "radial-gradient(circle, rgba(30,174,219,0.45) 0%, rgba(30,174,219,0) 70%)",
+                                            }}
+                                        />
+                                        <div
+                                            className="relative w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
+                                            style={{
+                                                background: "#1eaedb",
+                                                boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                                            }}
+                                        >
+                                            <svg width="10" height="10" viewBox="0 0 24 24">
+                                                <path
+                                                    d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"
+                                                    fill="#fff"
+                                                />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[13px] text-ps-charcoal font-medium leading-tight">
+                                            Critical
+                                        </div>
+                                        <div className="text-[11px] text-ps-bodyGray leading-tight">
+                                            Glyph disc, white border, pulse
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {hasNonCritical && (
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-none w-8 h-8 flex items-center justify-center">
+                                        <div
+                                            className="w-2.5 h-2.5 rounded-full border border-white"
+                                            style={{
+                                                background: "#9aa5b1",
+                                                boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="text-[13px] text-ps-charcoal font-medium leading-tight">
+                                            Non-critical
+                                        </div>
+                                        <div className="text-[11px] text-ps-bodyGray leading-tight">
+                                            Filled dot, use color
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Size scale (critical only) */}
+                    {hasCritical && (
+                        <div>
+                            <div className="text-[10px] uppercase tracking-[0.08em] text-ps-bodyGray font-semibold">
+                                Size = {attrLabel}
+                            </div>
+                            {Number.isFinite(attributeRange?.min) ? (
+                                <>
+                                    <div className="mt-3 flex items-end justify-between px-2">
+                                        <CriticalSwatch
+                                            size={SIZE_MIN}
+                                            label={formatNumber(attributeRange.min)}
+                                        />
+                                        <CriticalSwatch
+                                            size={(SIZE_MIN + SIZE_MAX) / 2}
+                                            label={formatNumber(midValue)}
+                                        />
+                                        <CriticalSwatch
+                                            size={SIZE_MAX}
+                                            label={formatNumber(attributeRange.max)}
+                                        />
+                                    </div>
+                                    <p className="mt-2 text-[11px] text-ps-bodyGray">
+                                        Applies to critical stations. Non-critical dots stay a
+                                        fixed size.
+                                    </p>
+                                </>
+                            ) : (
+                                <p className="mt-2 text-[11px] text-ps-bodyGray italic">
+                                    No {attrLabel} values in view.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Use colors */}
+                    {uses.length > 0 && (
+                        <div>
+                            <div className="text-[10px] uppercase tracking-[0.08em] text-ps-bodyGray font-semibold">
+                                Main Use (color)
+                            </div>
+                            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                {uses.map((u) => (
+                                    <div key={u} className="flex items-center gap-2 min-w-0">
+                                        <span
+                                            className="flex-none w-3 h-3 rounded-full"
+                                            style={{ background: USE_COLORS[u] }}
+                                        />
+                                        <span className="flex-none text-ps-bodyGray">
+                                            <UseIcon use={u} size={12} />
+                                        </span>
+                                        <span className="text-[12px] text-ps-charcoal truncate">
+                                            {USE_LABEL[u] || u}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}

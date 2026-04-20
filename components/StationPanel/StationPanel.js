@@ -1,5 +1,5 @@
 import React from "react";
-import { USE_COLORS, USE_COLOR_FALLBACK, formatNumber } from "../../utils/constants";
+import { USE_COLORS, USE_COLOR_FALLBACK, USE_LABEL, formatNumber } from "../../utils/constants";
 import UseIcon from "../icons/UseIcon";
 
 function Row({ label, value }) {
@@ -62,7 +62,7 @@ export default function StationPanel({ station, onClose, onDynamicInfo, hasDynam
                 </h2>
                 <div className="mt-3 flex items-center gap-2 text-[13px] opacity-95">
                     <UseIcon use={station.main_use} size={16} />
-                    <span>{station.main_use || "Unknown use"}</span>
+                    <span>{USE_LABEL[station.main_use] || station.main_use || "Unknown use"}</span>
                     <span className="mx-1 opacity-50">·</span>
                     <span>{station.country || "—"}</span>
                 </div>

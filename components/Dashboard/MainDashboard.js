@@ -1,18 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Sidebar from "../Sidebar/Sidebar";
 import StationPanel from "../StationPanel/StationPanel";
 import DynamicPanel from "../DynamicPanel/DynamicPanel";
 import SummaryView from "../Summary/SummaryView";
+import Legend from "../Map/Legend";
 import { loadStations, loadAllBoundaries, loadDynamicIndex } from "../../utils/dataLoader";
-import { isOperational } from "../../utils/constants";
+import { isOperational, DEFAULT_BASEMAP } from "../../utils/constants";
 
 const MapView = dynamic(() => import("../Map/MapView"), {
     ssr: false,
     loading: () => (
-        <div className="h-full w-full flex items-center justify-center bg-[#0b0d10] text-[#53b1ff]">
+        <div className="h-full w-full flex items-center justify-center bg-ps-ice text-ps-blue">
             <div className="text-center">
-                <div className="inline-block h-10 w-10 rounded-full border-2 border-[#53b1ff]/40 border-t-[#53b1ff] animate-spin" />
+                <div className="inline-block h-10 w-10 rounded-full border-2 border-ps-blue/30 border-t-ps-blue animate-spin" />
                 <p className="mt-4 text-sm font-light tracking-wide">Loading map…</p>
             </div>
         </div>
@@ -29,6 +30,10 @@ const DEFAULT_OPTIONS = {
     showNonCritical: true,
 };
 
+const MIN_DYNAMIC_PX = 180;
+const MAX_DYNAMIC_FRAC = 0.85;
+const DEFAULT_DYNAMIC_FRAC = 0.5;
+
 export default function MainDashboard() {
     const [options, setOptions] = useState(DEFAULT_OPTIONS);
     const [stations, setStations] = useState([]);
@@ -39,6 +44,13 @@ export default function MainDashboard() {
     const [selectedStation, setSelectedStation] = useState(null);
     const [dynamicStation, setDynamicStation] = useState(null);
     const [summaryOpen, setSummaryOpen] = useState(false);
+    const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
+    const [scaleRange, setScaleRange] = useState({ min: null, max: null });
+
+    const mainRef = useRef(null);
+    const [mainHeight, setMainHeight] = useState(0);
+    const [dynamicHeight, setDynamicHeight] = useState(0);
+    const dragState = useRef(null);
 
     useEffect(() => {
         let alive = true;
@@ -60,6 +72,32 @@ export default function MainDashboard() {
             alive = false;
         };
     }, []);
+
+    useEffect(() => {
+        const el = mainRef.current;
+        if (!el || typeof ResizeObserver === "undefined") return;
+        const ro = new ResizeObserver(([entry]) => {
+            setMainHeight(entry.contentRect.height);
+        });
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    // When the dynamic panel opens, start with a sensible default height.
+    useEffect(() => {
+        if (dynamicStation && mainHeight > 0 && dynamicHeight === 0) {
+            setDynamicHeight(Math.round(mainHeight * DEFAULT_DYNAMIC_FRAC));
+        }
+        if (!dynamicStation) setDynamicHeight(0);
+    }, [dynamicStation, mainHeight]);
+
+    // Clamp on viewport resize.
+    useEffect(() => {
+        if (!dynamicStation || mainHeight <= 0) return;
+        const maxH = Math.round(mainHeight * MAX_DYNAMIC_FRAC);
+        const minH = Math.min(MIN_DYNAMIC_PX, Math.round(mainHeight * 0.2));
+        setDynamicHeight((h) => Math.max(minH, Math.min(h || 0, maxH)));
+    }, [mainHeight, dynamicStation]);
 
     const update = (k, v) => setOptions((prev) => ({ ...prev, [k]: v }));
 
@@ -84,8 +122,60 @@ export default function MainDashboard() {
         });
     }, [stations, options]);
 
+    const usesInView = useMemo(
+        () => Array.from(new Set(filteredStations.map((s) => s.main_use).filter(Boolean))),
+        [filteredStations]
+    );
+    const hasCritical = useMemo(
+        () => filteredStations.some((s) => s.is_critical),
+        [filteredStations]
+    );
+    const hasNonCritical = useMemo(
+        () => filteredStations.some((s) => !s.is_critical),
+        [filteredStations]
+    );
+
     const hasDynamic = (s) =>
         s && s.is_critical && (dynamicIndex[String(s.SEAWEA_ID)] || dynamicIndex[s.SEAWEA_ID]);
+
+    // --- Dragging the dynamic panel top edge ---
+    const onDragStart = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const target = e.currentTarget;
+        const pointerId = e.pointerId;
+        try {
+            target.setPointerCapture?.(pointerId);
+        } catch (_) {}
+        const startY = e.clientY;
+        const startH = dynamicHeight;
+        dragState.current = { startY, startH };
+        const move = (ev) => {
+            if (ev.pointerId != null && ev.pointerId !== pointerId) return;
+            const dy = ev.clientY - startY;
+            const maxH = Math.round(mainHeight * MAX_DYNAMIC_FRAC);
+            const minH = MIN_DYNAMIC_PX;
+            const next = Math.max(minH, Math.min(startH - dy, maxH));
+            setDynamicHeight(next);
+        };
+        const up = (ev) => {
+            if (ev && ev.pointerId != null && ev.pointerId !== pointerId) return;
+            window.removeEventListener("pointermove", move);
+            window.removeEventListener("pointerup", up);
+            window.removeEventListener("pointercancel", up);
+            try {
+                target.releasePointerCapture?.(pointerId);
+            } catch (_) {}
+            document.body.style.userSelect = "";
+            document.body.style.cursor = "";
+            dragState.current = null;
+        };
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = "ns-resize";
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", up);
+        window.addEventListener("pointercancel", up);
+    };
 
     if (loading) {
         return (
@@ -98,7 +188,9 @@ export default function MainDashboard() {
                     >
                         Loading SEA-WEA Atlas
                     </p>
-                    <p className="mt-1 text-[13px] text-ps-bodyGray">Parsing stations and boundaries…</p>
+                    <p className="mt-1 text-[13px] text-ps-bodyGray">
+                        Parsing stations and boundaries…
+                    </p>
                 </div>
             </div>
         );
@@ -126,6 +218,10 @@ export default function MainDashboard() {
         );
     }
 
+    const mapHeight = dynamicStation
+        ? Math.max(mainHeight - dynamicHeight - 10, 160)
+        : mainHeight;
+
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-ps-ice">
             <Sidebar
@@ -134,11 +230,13 @@ export default function MainDashboard() {
                 onOpenSummary={() => setSummaryOpen(true)}
             />
 
-            <main className="flex-1 flex flex-col relative min-w-0">
+            <main ref={mainRef} className="flex-1 flex flex-col relative min-w-0">
                 <div
-                    className={`relative transition-all duration-300 ${
-                        dynamicStation ? "h-1/2" : "h-full"
-                    }`}
+                    className="relative"
+                    style={{
+                        height: dynamicStation ? mapHeight : "100%",
+                        transition: dragState.current ? "none" : "height 180ms ease",
+                    }}
                 >
                     <MapView
                         stations={filteredStations}
@@ -147,6 +245,9 @@ export default function MainDashboard() {
                         selectedAttribute={options.selectedAttribute}
                         selectedStation={selectedStation}
                         onStationClick={(s) => setSelectedStation(s)}
+                        basemap={basemap}
+                        onBasemapChange={setBasemap}
+                        onScaleChange={setScaleRange}
                     />
 
                     {/* Floating stats strip */}
@@ -172,6 +273,14 @@ export default function MainDashboard() {
                         </div>
                     </div>
 
+                    <Legend
+                        attributeKey={options.selectedAttribute}
+                        attributeRange={scaleRange}
+                        usesInView={usesInView}
+                        hasCritical={hasCritical}
+                        hasNonCritical={hasNonCritical}
+                    />
+
                     {selectedStation && (
                         <StationPanel
                             station={selectedStation}
@@ -185,12 +294,28 @@ export default function MainDashboard() {
                 </div>
 
                 {dynamicStation && (
-                    <div className="h-1/2 min-h-0">
-                        <DynamicPanel
-                            station={dynamicStation}
-                            onClose={() => setDynamicStation(null)}
-                        />
-                    </div>
+                    <>
+                        {/* drag handle */}
+                        <div
+                            role="separator"
+                            aria-orientation="horizontal"
+                            aria-label="Resize dynamic info panel"
+                            className="group h-[10px] cursor-ns-resize bg-[#eceff3] hover:bg-ps-cyan/40 transition-colors flex items-center justify-center relative z-[600]"
+                            style={{ touchAction: "none" }}
+                            onPointerDown={onDragStart}
+                            onDoubleClick={() =>
+                                setDynamicHeight(Math.round(mainHeight * DEFAULT_DYNAMIC_FRAC))
+                            }
+                        >
+                            <div className="h-[3px] w-12 rounded-full bg-[#b6bec7] group-hover:bg-ps-blue transition-colors" />
+                        </div>
+                        <div style={{ height: dynamicHeight }} className="min-h-0">
+                            <DynamicPanel
+                                station={dynamicStation}
+                                onClose={() => setDynamicStation(null)}
+                            />
+                        </div>
+                    </>
                 )}
             </main>
 
