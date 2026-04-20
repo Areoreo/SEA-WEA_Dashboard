@@ -1,19 +1,236 @@
-// Core CSS Reset/MISCS
-@import "core/misc";
-
-// Core Declarations
-@import "core/variables";
-
-// Core Layouts and Style Definitions
-@import "core/general";
-@import "core/typography";
-@import "core/utilities";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Import existing SCSS components */
-@import "../styles/core/components/variable-selector";
-@import "../styles/core/components/date-selector";
-@import "../styles/core/components/seawea-responsive";
+:root {
+    --ps-blue: #0070cc;
+    --ps-cyan: #1eaedb;
+    --ps-black: #000000;
+    --ps-white: #ffffff;
+    --ps-ice: #f5f7fa;
+    --ps-charcoal: #1f1f1f;
+    --ps-body-gray: #6b6b6b;
+    --ps-orange: #d53b00;
+    --ps-red: #c81b3a;
+}
+
+html,
+body,
+#__next {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: var(--ps-ice);
+    color: var(--ps-charcoal);
+    font-family: "SST", "Playstation SST", -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+// PlayStation hover signature for buttons marked .ps-btn
+.ps-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--ps-blue);
+    color: var(--ps-white);
+    font-weight: 500;
+    font-size: 16px;
+    letter-spacing: 0.4px;
+    border-radius: 999px;
+    padding: 10px 22px;
+    border: 2px solid transparent;
+    box-shadow: 0 0 0 0 transparent;
+    transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease,
+        border-color 180ms ease;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--ps-cyan);
+        border-color: var(--ps-white);
+        box-shadow: 0 0 0 2px var(--ps-blue);
+        transform: scale(1.06);
+    }
+
+    &:active {
+        opacity: 0.7;
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+        background: var(--ps-blue);
+        border-color: transparent;
+    }
+}
+
+.ps-btn-ghost {
+    background: transparent;
+    color: var(--ps-charcoal);
+    border: 1px solid #dedede;
+}
+
+.ps-btn-ghost:hover {
+    background: var(--ps-cyan);
+    color: var(--ps-white);
+    border-color: var(--ps-white);
+    box-shadow: 0 0 0 2px var(--ps-blue);
+    transform: scale(1.06);
+}
+
+.ps-btn-orange {
+    background: var(--ps-orange);
+    font-weight: 700;
+    letter-spacing: 0.45px;
+}
+
+.ps-btn-orange:hover {
+    background: var(--ps-cyan);
+}
+
+.ps-btn-orange:active {
+    background: #aa2f00;
+}
+
+.ps-btn-sm {
+    font-size: 14px;
+    padding: 6px 14px;
+}
+
+// Custom scrollbar
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--ps-ice);
+}
+::-webkit-scrollbar-thumb {
+    background: #cccccc;
+    border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--ps-blue);
+}
+
+// Leaflet tweaks
+.leaflet-container {
+    background: #0b0d10;
+    font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    box-shadow: 0 5px 9px 0 rgba(0, 0, 0, 0.16) !important;
+}
+
+.leaflet-popup-content {
+    margin: 14px 18px !important;
+    font-family: inherit;
+}
+
+.leaflet-tooltip.ps-tooltip {
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    box-shadow: none;
+}
+
+.leaflet-tooltip.ps-tooltip::before {
+    display: none;
+}
+
+// Station marker pulse for critical
+@keyframes ps-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(30, 174, 219, 0.55);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(30, 174, 219, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(30, 174, 219, 0);
+    }
+}
+
+.ps-marker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    transition: transform 160ms ease;
+    border: 2px solid #fff;
+}
+
+.ps-marker.critical {
+    animation: ps-pulse 2.1s infinite;
+}
+
+.ps-marker:hover {
+    transform: scale(1.2);
+    z-index: 500;
+}
+
+// 3D bar for summary
+.ps-bar-3d {
+    position: relative;
+    transform-style: preserve-3d;
+    perspective: 600px;
+}
+
+.ps-bar-3d .front {
+    background: linear-gradient(180deg, #1eaedb 0%, #0070cc 100%);
+    box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.ps-bar-3d .top {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background: linear-gradient(180deg, #53b1ff 0%, #1eaedb 100%);
+    transform: skewX(-45deg);
+    transform-origin: bottom left;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+}
+
+.ps-bar-3d .side {
+    position: absolute;
+    top: 0;
+    right: -10px;
+    bottom: 0;
+    width: 10px;
+    background: linear-gradient(90deg, #0068bd 0%, #004b8a 100%);
+    transform: skewY(-45deg);
+    transform-origin: bottom left;
+}
+
+@keyframes ps-grow {
+    from {
+        height: 0;
+    }
+    to {
+        height: var(--grow-target);
+    }
+}
+
+.ps-bar-anim {
+    animation: ps-grow 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
