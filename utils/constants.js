@@ -54,14 +54,33 @@ export function isOperational(status) {
     return String(status).trim().toLowerCase() === "operational";
 }
 
+// `summary` drives the per-basin summary bar plot:
+//   "sum"   → bar height is the sum of this attribute per class
+//   "count" → bar height is the count of stations (with data) per class
 export const NUMERIC_ATTRIBUTES = [
-    { key: "normal_capacity_mcm", label: "Normal Capacity (MCM)" },
-    { key: "normal_area_km2", label: "Normal Area (km²)" },
-    { key: "max_capacity_mcm", label: "Max Capacity (MCM)" },
-    { key: "dam_height_m", label: "Dam Height (m)" },
-    { key: "power_mw", label: "Power (MW)" },
-    { key: "water_head_m", label: "Water Head (m)" },
+    { key: "normal_capacity_mcm", label: "Normal Capacity (MCM)", summary: "sum" },
+    { key: "normal_area_km2", label: "Normal Area (km²)", summary: "sum" },
+    { key: "power_mw", label: "Installed Capacity (MW)", summary: "sum" },
+    { key: "dam_height_m", label: "Dam Height (m)", summary: "count" },
+    { key: "dam_length_m", label: "Dam Length (m)", summary: "count" },
+    { key: "water_head_m", label: "Water Head (m)", summary: "count" },
 ];
+
+export const SUMMARY_CLASSES = [
+    { key: "critical", label: "Critical", color: "#0070cc" },
+    { key: "nonCritical", label: "Non-critical", color: "#8aa0b4" },
+    { key: "unknown", label: "Unknown", color: "#c9ced4" },
+];
+
+// Classify a station into one of the three summary classes.
+// - critical    = is_critical === true
+// - nonCritical = is_critical false AND the station is operational
+// - unknown     = everything else (non-operational / missing status)
+export function classifyStation(station) {
+    if (station.is_critical) return "critical";
+    if (isOperational(station.status)) return "nonCritical";
+    return "unknown";
+}
 
 export function formatNumber(v, decimals = 2) {
     if (v == null || !Number.isFinite(v)) return "—";

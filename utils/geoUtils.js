@@ -43,3 +43,60 @@ export function assignFeature(lng, lat, featureCollection, labelKey) {
     }
     return null;
 }
+
+function ringArea(ring) {
+    let a = 0;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        a += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    }
+    return a * 0.5;
+}
+
+function ringCentroid(ring) {
+    let cx = 0,
+        cy = 0,
+        a = 0;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i];
+        const [xj, yj] = ring[j];
+        const f = xj * yi - xi * yj;
+        a += f;
+        cx += (xi + xj) * f;
+        cy += (yi + yj) * f;
+    }
+    a *= 0.5;
+    if (Math.abs(a) < 1e-12) {
+        let sx = 0,
+            sy = 0;
+        for (const [x, y] of ring) {
+            sx += x;
+            sy += y;
+        }
+        return [sx / ring.length, sy / ring.length];
+    }
+    return [cx / (6 * a), cy / (6 * a)];
+}
+
+// Returns [lng, lat] of the geometric centre of the feature. For a
+// MultiPolygon we take the centroid of the largest component — that's what
+// a user reads as "middle of the basin", even when a small outlying polygon
+// would otherwise drag the average away.
+export function featureCentroid(feature) {
+    const g = feature?.geometry;
+    if (!g) return null;
+    if (g.type === "Polygon") return ringCentroid(g.coordinates[0]);
+    if (g.type === "MultiPolygon") {
+        let best = null;
+        let bestArea = 0;
+        for (const poly of g.coordinates) {
+            const ring = poly[0];
+            const area = Math.abs(ringArea(ring));
+            if (area > bestArea) {
+                bestArea = area;
+                best = ring;
+            }
+        }
+        return best ? ringCentroid(best) : null;
+    }
+    return null;
+}

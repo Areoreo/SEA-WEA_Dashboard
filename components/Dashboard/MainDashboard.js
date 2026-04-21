@@ -3,7 +3,6 @@ import dynamic from "next/dynamic";
 import Sidebar from "../Sidebar/Sidebar";
 import StationPanel from "../StationPanel/StationPanel";
 import DynamicPanel from "../DynamicPanel/DynamicPanel";
-import SummaryView from "../Summary/SummaryView";
 import Legend from "../Map/Legend";
 import { loadStations, loadAllBoundaries, loadDynamicIndex } from "../../utils/dataLoader";
 import { isOperational, DEFAULT_BASEMAP } from "../../utils/constants";
@@ -33,6 +32,7 @@ const DEFAULT_OPTIONS = {
 const MIN_DYNAMIC_PX = 180;
 const MAX_DYNAMIC_FRAC = 0.85;
 const DEFAULT_DYNAMIC_FRAC = 0.5;
+const HANDLE_PX = 14;
 
 export default function MainDashboard() {
     const [options, setOptions] = useState(DEFAULT_OPTIONS);
@@ -48,9 +48,20 @@ export default function MainDashboard() {
     const [scaleRange, setScaleRange] = useState({ min: null, max: null });
 
     const mainRef = useRef(null);
+    const handleRef = useRef(null);
     const [mainHeight, setMainHeight] = useState(0);
     const [dynamicHeight, setDynamicHeight] = useState(0);
-    const dragState = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
+    // Refs mirror the state so the drag listeners (attached once via effect)
+    // always read the freshest values without needing to re-bind.
+    const mainHeightRef = useRef(0);
+    const dynamicHeightRef = useRef(0);
+    useEffect(() => {
+        mainHeightRef.current = mainHeight;
+    }, [mainHeight]);
+    useEffect(() => {
+        dynamicHeightRef.current = dynamicHeight;
+    }, [dynamicHeight]);
 
     useEffect(() => {
         let alive = true;
@@ -75,7 +86,12 @@ export default function MainDashboard() {
 
     useEffect(() => {
         const el = mainRef.current;
-        if (!el || typeof ResizeObserver === "undefined") return;
+        if (!el) return;
+        // Seed synchronously from the DOM so we don't depend on the
+        // ResizeObserver firing before the user clicks "Dynamic Info".
+        const h0 = el.getBoundingClientRect().height;
+        if (h0 > 0) setMainHeight(h0);
+        if (typeof ResizeObserver === "undefined") return;
         const ro = new ResizeObserver(([entry]) => {
             setMainHeight(entry.contentRect.height);
         });
@@ -84,19 +100,31 @@ export default function MainDashboard() {
     }, []);
 
     // When the dynamic panel opens, start with a sensible default height.
+    // Read the current <main> height directly from the ref rather than from
+    // state, so we don't get stuck at 0 if the ResizeObserver hasn't fired yet.
     useEffect(() => {
-        if (dynamicStation && mainHeight > 0 && dynamicHeight === 0) {
-            setDynamicHeight(Math.round(mainHeight * DEFAULT_DYNAMIC_FRAC));
+        if (!dynamicStation) {
+            setDynamicHeight(0);
+            return;
         }
-        if (!dynamicStation) setDynamicHeight(0);
+        const measured =
+            mainRef.current?.getBoundingClientRect().height || mainHeight || 0;
+        if (measured <= 0) return;
+        setDynamicHeight((h) =>
+            h > 0 ? h : Math.round(measured * DEFAULT_DYNAMIC_FRAC)
+        );
     }, [dynamicStation, mainHeight]);
 
-    // Clamp on viewport resize.
+    // Clamp on viewport resize. Also acts as a safety net: if a prior render
+    // left dynamicHeight at 0 while the panel is open, this restores it.
     useEffect(() => {
         if (!dynamicStation || mainHeight <= 0) return;
         const maxH = Math.round(mainHeight * MAX_DYNAMIC_FRAC);
         const minH = Math.min(MIN_DYNAMIC_PX, Math.round(mainHeight * 0.2));
-        setDynamicHeight((h) => Math.max(minH, Math.min(h || 0, maxH)));
+        setDynamicHeight((h) => {
+            const base = h > 0 ? h : Math.round(mainHeight * DEFAULT_DYNAMIC_FRAC);
+            return Math.max(minH, Math.min(base, maxH));
+        });
     }, [mainHeight, dynamicStation]);
 
     const update = (k, v) => setOptions((prev) => ({ ...prev, [k]: v }));
@@ -139,42 +167,69 @@ export default function MainDashboard() {
         s && s.is_critical && (dynamicIndex[String(s.SEAWEA_ID)] || dynamicIndex[s.SEAWEA_ID]);
 
     // --- Dragging the dynamic panel top edge ---
-    const onDragStart = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const target = e.currentTarget;
-        const pointerId = e.pointerId;
-        try {
-            target.setPointerCapture?.(pointerId);
-        } catch (_) {}
-        const startY = e.clientY;
-        const startH = dynamicHeight;
-        dragState.current = { startY, startH };
-        const move = (ev) => {
-            if (ev.pointerId != null && ev.pointerId !== pointerId) return;
+    // Native DOM listener attached once via effect (not a React synthetic
+    // onPointerDown) so the drag is not susceptible to stale closures or to
+    // the surrounding Leaflet map re-targeting pointer events. All mutable
+    // inputs (heights) are read through refs to stay fresh without re-binding.
+    useEffect(() => {
+        const handleEl = handleRef.current;
+        if (!handleEl || !dynamicStation) return;
+
+        let startY = 0;
+        let startH = 0;
+
+        const onMove = (ev) => {
+            const mh = mainHeightRef.current;
+            if (mh <= 0) return;
             const dy = ev.clientY - startY;
-            const maxH = Math.round(mainHeight * MAX_DYNAMIC_FRAC);
+            const maxH = Math.round(mh * MAX_DYNAMIC_FRAC);
             const minH = MIN_DYNAMIC_PX;
             const next = Math.max(minH, Math.min(startH - dy, maxH));
             setDynamicHeight(next);
         };
-        const up = (ev) => {
-            if (ev && ev.pointerId != null && ev.pointerId !== pointerId) return;
-            window.removeEventListener("pointermove", move);
-            window.removeEventListener("pointerup", up);
-            window.removeEventListener("pointercancel", up);
-            try {
-                target.releasePointerCapture?.(pointerId);
-            } catch (_) {}
+
+        const onUp = () => {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+            window.removeEventListener("pointercancel", onUp);
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
             document.body.style.userSelect = "";
             document.body.style.cursor = "";
-            dragState.current = null;
+            setIsDragging(false);
         };
-        document.body.style.userSelect = "none";
-        document.body.style.cursor = "ns-resize";
-        window.addEventListener("pointermove", move);
-        window.addEventListener("pointerup", up);
-        window.addEventListener("pointercancel", up);
+
+        const onDown = (ev) => {
+            if (ev.button != null && ev.button !== 0) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            startY = ev.clientY;
+            startH = dynamicHeightRef.current;
+            setIsDragging(true);
+            document.body.style.userSelect = "none";
+            document.body.style.cursor = "ns-resize";
+            // Dual bind pointer + mouse for maximum browser/touch coverage.
+            window.addEventListener("pointermove", onMove);
+            window.addEventListener("pointerup", onUp);
+            window.addEventListener("pointercancel", onUp);
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp);
+        };
+
+        handleEl.addEventListener("pointerdown", onDown);
+        handleEl.addEventListener("mousedown", onDown);
+
+        return () => {
+            handleEl.removeEventListener("pointerdown", onDown);
+            handleEl.removeEventListener("mousedown", onDown);
+            onUp();
+        };
+    }, [dynamicStation]);
+
+    const resetDynamicHeight = () => {
+        if (mainHeight > 0) {
+            setDynamicHeight(Math.round(mainHeight * DEFAULT_DYNAMIC_FRAC));
+        }
     };
 
     if (loading) {
@@ -219,7 +274,7 @@ export default function MainDashboard() {
     }
 
     const mapHeight = dynamicStation
-        ? Math.max(mainHeight - dynamicHeight - 10, 160)
+        ? Math.max(mainHeight - dynamicHeight - HANDLE_PX, 160)
         : mainHeight;
 
     return (
@@ -227,15 +282,16 @@ export default function MainDashboard() {
             <Sidebar
                 options={options}
                 update={update}
-                onOpenSummary={() => setSummaryOpen(true)}
+                summaryOpen={summaryOpen}
+                onOpenSummary={() => setSummaryOpen((v) => !v)}
             />
 
-            <main ref={mainRef} className="flex-1 flex flex-col relative min-w-0">
+            <main ref={mainRef} className="flex-1 flex flex-col relative min-w-0 min-h-0">
                 <div
-                    className="relative"
+                    className="relative flex-shrink-0"
                     style={{
                         height: dynamicStation ? mapHeight : "100%",
-                        transition: dragState.current ? "none" : "height 180ms ease",
+                        transition: isDragging ? "none" : "height 180ms ease",
                     }}
                 >
                     <MapView
@@ -248,6 +304,7 @@ export default function MainDashboard() {
                         basemap={basemap}
                         onBasemapChange={setBasemap}
                         onScaleChange={setScaleRange}
+                        summaryVisible={summaryOpen}
                     />
 
                     {/* Floating stats strip */}
@@ -295,21 +352,66 @@ export default function MainDashboard() {
 
                 {dynamicStation && (
                     <>
-                        {/* drag handle */}
+                        {/* Drag handle — PS editorial: quiet ice-mist bar with a
+                            cyan active state. Native listeners attached via
+                            effect in handleRef. */}
                         <div
+                            ref={handleRef}
                             role="separator"
                             aria-orientation="horizontal"
                             aria-label="Resize dynamic info panel"
-                            className="group h-[10px] cursor-ns-resize bg-[#eceff3] hover:bg-ps-cyan/40 transition-colors flex items-center justify-center relative z-[600]"
-                            style={{ touchAction: "none" }}
-                            onPointerDown={onDragStart}
-                            onDoubleClick={() =>
-                                setDynamicHeight(Math.round(mainHeight * DEFAULT_DYNAMIC_FRAC))
-                            }
+                            aria-valuenow={dynamicHeight}
+                            tabIndex={0}
+                            onDoubleClick={resetDynamicHeight}
+                            onKeyDown={(e) => {
+                                const step = e.shiftKey ? 48 : 16;
+                                const mh = mainHeightRef.current;
+                                const maxH = Math.round(mh * MAX_DYNAMIC_FRAC);
+                                if (e.key === "ArrowUp") {
+                                    e.preventDefault();
+                                    setDynamicHeight((h) =>
+                                        Math.min(maxH, (h || 0) + step)
+                                    );
+                                } else if (e.key === "ArrowDown") {
+                                    e.preventDefault();
+                                    setDynamicHeight((h) =>
+                                        Math.max(MIN_DYNAMIC_PX, (h || 0) - step)
+                                    );
+                                } else if (e.key === "Home") {
+                                    e.preventDefault();
+                                    resetDynamicHeight();
+                                }
+                            }}
+                            title="Drag to resize · double-click to reset · arrow keys when focused"
+                            style={{
+                                height: HANDLE_PX,
+                                touchAction: "none",
+                                userSelect: "none",
+                                cursor: "ns-resize",
+                            }}
+                            className={`group flex-shrink-0 border-y border-ps-divider flex items-center justify-center relative z-[600] transition-colors duration-[180ms] ease-ps outline-none focus-visible:ring-2 focus-visible:ring-ps-blue ${
+                                isDragging
+                                    ? "bg-ps-cyan"
+                                    : "bg-ps-ice hover:bg-ps-cyan/30"
+                            }`}
                         >
-                            <div className="h-[3px] w-12 rounded-full bg-[#b6bec7] group-hover:bg-ps-blue transition-colors" />
+                            <div
+                                className={`h-[3px] w-20 rounded-pill transition-colors duration-[180ms] ease-ps ${
+                                    isDragging
+                                        ? "bg-white"
+                                        : "bg-ps-mute group-hover:bg-ps-blue"
+                                }`}
+                            />
                         </div>
-                        <div style={{ height: dynamicHeight }} className="min-h-0">
+                        <div
+                            style={{
+                                height: dynamicHeight,
+                                transition: isDragging
+                                    ? "none"
+                                    : "height 180ms cubic-bezier(0.4, 0, 0.2, 1)",
+                            }}
+                            className="flex-shrink-0 min-h-0 overflow-hidden"
+                        >
                             <DynamicPanel
                                 station={dynamicStation}
                                 onClose={() => setDynamicStation(null)}
@@ -318,15 +420,6 @@ export default function MainDashboard() {
                     </>
                 )}
             </main>
-
-            <SummaryView
-                open={summaryOpen}
-                onClose={() => setSummaryOpen(false)}
-                stations={filteredStations}
-                boundaries={boundaries}
-                spatialUnit={options.spatialUnit}
-                selectedAttribute={options.selectedAttribute}
-            />
         </div>
     );
 }

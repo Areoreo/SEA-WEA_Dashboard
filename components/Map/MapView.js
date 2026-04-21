@@ -10,6 +10,7 @@ import {
     BASEMAPS,
 } from "../../utils/constants";
 import { buildUseIconSvg } from "../icons/UseIcon";
+import SummaryLayer from "../Summary/SummaryLayer";
 
 function FitToRegion({ research }) {
     const map = useMap();
@@ -152,6 +153,7 @@ export default function MapView({
     basemap,
     onBasemapChange,
     onScaleChange,
+    summaryVisible,
 }) {
     const basemapCfg = BASEMAPS[basemap] || BASEMAPS.light;
     const scaleInfo = useMemo(
@@ -257,6 +259,13 @@ export default function MapView({
             })}
 
             <FlyToStation target={selectedStation} />
+            {summaryVisible && boundaries?.basins && (
+                <SummaryLayer
+                    basins={boundaries.basins}
+                    stations={stations}
+                    selectedAttribute={selectedAttribute}
+                />
+            )}
             <BasemapToggle basemap={basemap} onChange={onBasemapChange} />
         </MapContainer>
     );

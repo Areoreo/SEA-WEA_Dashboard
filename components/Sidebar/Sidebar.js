@@ -58,7 +58,7 @@ function Chip({ active, onClick, color, children, icon }) {
     );
 }
 
-export default function Sidebar({ options, update, onOpenSummary }) {
+export default function Sidebar({ options, update, summaryOpen, onOpenSummary }) {
     const toggleUse = (use) => {
         const next = options.selectedUses.includes(use)
             ? options.selectedUses.filter((u) => u !== use)
@@ -216,15 +216,21 @@ export default function Sidebar({ options, update, onOpenSummary }) {
                     <button
                         className="ps-btn w-full"
                         onClick={onOpenSummary}
-                        aria-label="Open summary"
+                        aria-pressed={!!summaryOpen}
+                        aria-label={summaryOpen ? "Hide summary" : "Show summary"}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                             <rect x="3" y="10" width="4" height="11" rx="1" fill="currentColor" />
                             <rect x="10" y="5" width="4" height="16" rx="1" fill="currentColor" />
                             <rect x="17" y="13" width="4" height="8" rx="1" fill="currentColor" />
                         </svg>
-                        Open Summary
+                        {summaryOpen ? "Hide Summary" : "Summary"}
                     </button>
+                    <p className="mt-2 text-[12px] text-ps-bodyGray">
+                        Overlays a 3D bar plot at each basin centroid — critical,
+                        non-critical, and unknown. Sums capacity / area / installed
+                        power; counts stations for dam height / length / water head.
+                    </p>
                 </div>
             </div>
         </aside>
