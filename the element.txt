@@ -1,9 +1,0 @@
-/html/body/div[1]/div/main/div[1]
-/html/body/div[1]/div/main/div[2]
-/html/body/div[1]/div/main/div[3]
-
-<div class= relative flex-shrink-0" style="height: 160px; transition: height180ms:"></div>
-
-<div role= separator" aria-orientation= horizontal" aria-label= Resize dynamic info panel" aria-valuenow="o" tabindex="o" title="Drag to resize  double-click to reset  arrow keys when focused" class="group flex-shrink-0 border-y border-ps-divider flex items-center justify-center relative z-[600] transition-colors duration-[180ms] ease-ps outline-none focus-visible:ring-2 focus-visible:ring-ps-blue bg-ps-ice hover:bg-ps-cyan/30" style="height: 14px;touch-action: none; user-select: none; cursor: ns-resize;"></div>
-
-<div class="flex-shrink-0 min-h-0 overflow-hidden" style="height: Opx; transition: height 180ms cubic-bezier (0. 4, 0, 0.2, 1):">  </div> == $0

@@ -104,32 +104,19 @@ function niceExtent(series, key) {
 /* Hook: measure container width                                       */
 /* ------------------------------------------------------------------ */
 
-function useContainerWidth(tag = "container") {
+function useContainerWidth() {
     const ref = useRef(null);
     const [w, setW] = useState(0);
     useLayoutEffect(() => {
         const el = ref.current;
-        if (!el || typeof ResizeObserver === "undefined") {
-            console.warn("[DynamicPanel]", tag, "no ResizeObserver / no ref");
-            return;
-        }
-        const rect = el.getBoundingClientRect();
-        console.log("[DynamicPanel]", tag, "initial rect", {
-            width: rect.width,
-            height: rect.height,
-            parentHeight: el.parentElement?.getBoundingClientRect().height,
-        });
-        setW(rect.width);
+        if (!el || typeof ResizeObserver === "undefined") return;
+        setW(el.getBoundingClientRect().width);
         const ro = new ResizeObserver(([entry]) => {
-            console.log("[DynamicPanel]", tag, "resize", {
-                width: entry.contentRect.width,
-                height: entry.contentRect.height,
-            });
             setW(entry.contentRect.width);
         });
         ro.observe(el);
         return () => ro.disconnect();
-    }, [tag]);
+    }, []);
     return [ref, w];
 }
 
@@ -138,7 +125,7 @@ function useContainerWidth(tag = "container") {
 /* ------------------------------------------------------------------ */
 
 function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
-    const [wrapRef, width] = useContainerWidth(`chart:${metric.key}`);
+    const [wrapRef, width] = useContainerWidth();
 
     const stats = useMemo(() => summarize(series, metric.key), [series, metric.key]);
     const yExtent = useMemo(() => niceExtent(series, metric.key), [series, metric.key]);
@@ -433,7 +420,7 @@ function Stat({ label, value, unit, accent }) {
 /* ------------------------------------------------------------------ */
 
 function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
-    const [wrapRef, width] = useContainerWidth("brush");
+    const [wrapRef, width] = useContainerWidth();
     const ready = width > 0 && series.length > 0;
 
     const plotW = Math.max(0, width - CHART_MARGIN.left - CHART_MARGIN.right);
@@ -619,30 +606,7 @@ export default function DynamicPanel({ station, onClose }) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        console.log("[DynamicPanel] MOUNT", {
-            station: station?.SEAWEA_ID,
-            hasRoot: !!rootRef.current,
-            rootRect: rootRef.current?.getBoundingClientRect(),
-            parentRect: rootRef.current?.parentElement?.getBoundingClientRect(),
-        });
         setMounted(true);
-        return () => console.log("[DynamicPanel] UNMOUNT");
-    }, []);
-
-    // Watch our own rendered size so we can diagnose outer clipping.
-    useEffect(() => {
-        const el = rootRef.current;
-        if (!el || typeof ResizeObserver === "undefined") return;
-        const ro = new ResizeObserver(([entry]) => {
-            console.log("[DynamicPanel] root size", {
-                width: entry.contentRect.width,
-                height: entry.contentRect.height,
-                parentHeight:
-                    el.parentElement?.getBoundingClientRect().height,
-            });
-        });
-        ro.observe(el);
-        return () => ro.disconnect();
     }, []);
 
     const [raw, setRaw] = useState(null);
@@ -660,21 +624,14 @@ export default function DynamicPanel({ station, onClose }) {
         setRaw(null);
         setHoverIdx(null);
         setDomain(null);
-        console.log("[DynamicPanel] loadDynamicSeries → fetching", station.SEAWEA_ID);
         loadDynamicSeries(station.SEAWEA_ID)
             .then((s) => {
                 if (!alive) return;
-                console.log("[DynamicPanel] loadDynamicSeries ← result", {
-                    id: station.SEAWEA_ID,
-                    rows: s ? s.length : 0,
-                    sample: s && s[0],
-                });
                 setRaw(s || []);
                 setLoading(false);
             })
             .catch((e) => {
                 if (!alive) return;
-                console.error("[DynamicPanel] loadDynamicSeries ERROR", e);
                 setError(e.message || "Failed to load dynamic data");
                 setLoading(false);
             });
@@ -683,20 +640,11 @@ export default function DynamicPanel({ station, onClose }) {
         };
     }, [station?.SEAWEA_ID]);
 
-    const series = useMemo(() => {
-        const s = parseSeries(raw);
-        console.log("[DynamicPanel] parseSeries", {
-            rawLen: raw ? raw.length : null,
-            parsedLen: s.length,
-        });
-        return s;
-    }, [raw]);
+    const series = useMemo(() => parseSeries(raw), [raw]);
 
     const fullDomain = useMemo(() => {
         if (series.length === 0) return null;
-        const d = [series[0]._t, series[series.length - 1]._t];
-        console.log("[DynamicPanel] fullDomain", d);
-        return d;
+        return [series[0]._t, series[series.length - 1]._t];
     }, [series]);
 
     // Initialize domain once we have data
@@ -727,30 +675,10 @@ export default function DynamicPanel({ station, onClose }) {
 
     const visibleMetrics = METRICS.filter((m) => activeKeys.includes(m.key));
 
-    const branch = !mounted
-        ? "not-mounted"
-        : loading
-        ? "loading"
-        : error
-        ? "error"
-        : series.length === 0
-        ? "empty"
-        : "charts";
-    console.log("[DynamicPanel] render", {
-        branch,
-        mounted,
-        loading,
-        error,
-        seriesLen: series.length,
-        domain,
-        activeKeys,
-    });
-
     return (
         <div
             ref={rootRef}
             className="h-full w-full flex flex-col bg-ps-ice border-t border-ps-divider"
-            data-dp-branch={branch}
         >
             {/* Header */}
             <div className="flex-shrink-0 bg-white border-b border-ps-divider">

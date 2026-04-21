@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Sidebar from "../Sidebar/Sidebar";
 import StationPanel from "../StationPanel/StationPanel";
@@ -30,9 +30,17 @@ const DEFAULT_OPTIONS = {
 };
 
 const MIN_DYNAMIC_PX = 180;
-const MAX_DYNAMIC_FRAC = 0.85;
-const DEFAULT_DYNAMIC_FRAC = 0.5;
+const MIN_MAP_PX = 180;
+const MAX_DYNAMIC_FRAC = 0.95;
 const HANDLE_PX = 14;
+
+// Read <main>'s live pixel height. Pref DOM over React state so we are
+// not blocked on a ResizeObserver tick that may not have landed yet.
+function readMainHeight(el, fallback = 0) {
+    if (!el) return fallback;
+    const h = el.getBoundingClientRect().height;
+    return h > 0 ? h : fallback;
+}
 
 export default function MainDashboard() {
     const [options, setOptions] = useState(DEFAULT_OPTIONS);
@@ -84,11 +92,11 @@ export default function MainDashboard() {
         };
     }, []);
 
-    useEffect(() => {
+    // Seed mainHeight synchronously from layout (useLayoutEffect ensures the
+    // DOM is measured before any child that depends on it paints).
+    useLayoutEffect(() => {
         const el = mainRef.current;
         if (!el) return;
-        // Seed synchronously from the DOM so we don't depend on the
-        // ResizeObserver firing before the user clicks "Dynamic Info".
         const h0 = el.getBoundingClientRect().height;
         if (h0 > 0) setMainHeight(h0);
         if (typeof ResizeObserver === "undefined") return;
@@ -99,30 +107,28 @@ export default function MainDashboard() {
         return () => ro.disconnect();
     }, []);
 
-    // When the dynamic panel opens, start with a sensible default height.
-    // Read the current <main> height directly from the ref rather than from
-    // state, so we don't get stuck at 0 if the ResizeObserver hasn't fired yet.
+    // Default: the dynamic panel claims the full remaining height with the
+    // map collapsing to MIN_MAP_PX — matches the user intent that the charts
+    // occupy the whole panel area when "Dynamic Info" is opened.
     useEffect(() => {
         if (!dynamicStation) {
             setDynamicHeight(0);
             return;
         }
-        const measured =
-            mainRef.current?.getBoundingClientRect().height || mainHeight || 0;
+        const measured = readMainHeight(mainRef.current, mainHeight);
         if (measured <= 0) return;
-        setDynamicHeight((h) =>
-            h > 0 ? h : Math.round(measured * DEFAULT_DYNAMIC_FRAC)
-        );
+        const target = Math.max(MIN_DYNAMIC_PX, measured - MIN_MAP_PX - HANDLE_PX);
+        setDynamicHeight((h) => (h > 0 ? h : target));
     }, [dynamicStation, mainHeight]);
 
-    // Clamp on viewport resize. Also acts as a safety net: if a prior render
-    // left dynamicHeight at 0 while the panel is open, this restores it.
+    // Clamp on viewport resize. Also self-heals if state ever slipped to 0.
     useEffect(() => {
         if (!dynamicStation || mainHeight <= 0) return;
         const maxH = Math.round(mainHeight * MAX_DYNAMIC_FRAC);
         const minH = Math.min(MIN_DYNAMIC_PX, Math.round(mainHeight * 0.2));
+        const fallback = Math.max(minH, mainHeight - MIN_MAP_PX - HANDLE_PX);
         setDynamicHeight((h) => {
-            const base = h > 0 ? h : Math.round(mainHeight * DEFAULT_DYNAMIC_FRAC);
+            const base = h > 0 ? h : fallback;
             return Math.max(minH, Math.min(base, maxH));
         });
     }, [mainHeight, dynamicStation]);
@@ -179,7 +185,9 @@ export default function MainDashboard() {
         let startH = 0;
 
         const onMove = (ev) => {
-            const mh = mainHeightRef.current;
+            // Prefer the live DOM measurement — mainHeightRef (state mirror)
+            // can lag the first layout and would otherwise block the drag.
+            const mh = readMainHeight(mainRef.current, mainHeightRef.current);
             if (mh <= 0) return;
             const dy = ev.clientY - startY;
             const maxH = Math.round(mh * MAX_DYNAMIC_FRAC);
@@ -227,8 +235,9 @@ export default function MainDashboard() {
     }, [dynamicStation]);
 
     const resetDynamicHeight = () => {
-        if (mainHeight > 0) {
-            setDynamicHeight(Math.round(mainHeight * DEFAULT_DYNAMIC_FRAC));
+        const mh = readMainHeight(mainRef.current, mainHeight);
+        if (mh > 0) {
+            setDynamicHeight(Math.max(MIN_DYNAMIC_PX, mh - MIN_MAP_PX - HANDLE_PX));
         }
     };
 
@@ -273,9 +282,10 @@ export default function MainDashboard() {
         );
     }
 
+    const effectiveMain = mainHeight || readMainHeight(mainRef.current, 0);
     const mapHeight = dynamicStation
-        ? Math.max(mainHeight - dynamicHeight - HANDLE_PX, 160)
-        : mainHeight;
+        ? Math.max(effectiveMain - dynamicHeight - HANDLE_PX, MIN_MAP_PX)
+        : effectiveMain;
 
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-ps-ice">
@@ -365,7 +375,10 @@ export default function MainDashboard() {
                             onDoubleClick={resetDynamicHeight}
                             onKeyDown={(e) => {
                                 const step = e.shiftKey ? 48 : 16;
-                                const mh = mainHeightRef.current;
+                                const mh = readMainHeight(
+                                    mainRef.current,
+                                    mainHeightRef.current
+                                );
                                 const maxH = Math.round(mh * MAX_DYNAMIC_FRAC);
                                 if (e.key === "ArrowUp") {
                                     e.preventDefault();
