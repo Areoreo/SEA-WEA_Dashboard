@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, Marker, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -76,45 +76,127 @@ function buildCriticalIcon(station, size, isSelected) {
     });
 }
 
-function PolygonsLayer({ spatialUnit, countries, basins }) {
-    if (spatialUnit === "countries") {
-        return (
-            <GeoJSON
-                key="countries"
-                data={countries}
-                style={(f) => ({
-                    fillColor: COUNTRY_COLORS[f.properties.country] || "#e8ecef",
-                    fillOpacity: 0.5,
+// Light grey used for the regions that are NOT part of the active selection.
+const DIMMED_FILL = "#e3e7eb";
+const DIMMED_LINE = "#cbd2da";
+
+function PolygonsLayer({ spatialUnit, countries, basins, selectedCountries, selectedBasins }) {
+    const ref = useRef(null);
+    const isBasin = spatialUnit === "basins";
+    const data = isBasin ? basins : countries;
+    const labelKey = isBasin ? "basin" : "country";
+    const colorMap = isBasin ? BASIN_COLORS : COUNTRY_COLORS;
+    const selected = isBasin ? selectedBasins : selectedCountries;
+    const selKey = selected.join("|");
+
+    // Selected regions keep their fill and gain a bold PlayStation-blue
+    // outline; everything else fades to light grey so the selection reads as
+    // the focus. With no selection, all regions show their resting style.
+    const styleFn = useCallback(
+        (f) => {
+            const name = f.properties[labelKey];
+            const baseFill = colorMap[name] || "#e8ecef";
+            const restingOpacity = isBasin ? 0.55 : 0.5;
+            if (selected.length === 0) {
+                return {
+                    fillColor: baseFill,
+                    fillOpacity: restingOpacity,
                     color: "#8fa0b4",
                     weight: 0.6,
-                })}
-                onEachFeature={(f, layer) => {
-                    layer.bindTooltip(f.properties.country, {
-                        sticky: true,
-                        className: "ps-tooltip",
-                    });
-                }}
-            />
-        );
-    }
+                };
+            }
+            if (selected.includes(name)) {
+                return {
+                    fillColor: baseFill,
+                    fillOpacity: 0.68,
+                    color: "#0070cc",
+                    weight: 2.5,
+                };
+            }
+            return {
+                fillColor: DIMMED_FILL,
+                fillOpacity: 0.4,
+                color: DIMMED_LINE,
+                weight: 0.5,
+            };
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [isBasin, labelKey, selKey]
+    );
+
+    // Re-style the existing paths imperatively (react-leaflet does not re-run
+    // `style` on prop change) so toggling chips never re-parses the geometry.
+    useEffect(() => {
+        if (ref.current) ref.current.setStyle(styleFn);
+    }, [styleFn]);
+
     return (
         <GeoJSON
-            key="basins"
-            data={basins}
-            style={(f) => ({
-                fillColor: BASIN_COLORS[f.properties.basin] || "#e8ecef",
-                fillOpacity: 0.55,
-                color: "#8fa0b4",
-                weight: 0.6,
-            })}
+            key={isBasin ? "basins" : "countries"}
+            ref={ref}
+            data={data}
+            style={styleFn}
             onEachFeature={(f, layer) => {
-                layer.bindTooltip(`${f.properties.basin} Basin`, {
+                const name = f.properties[labelKey];
+                layer.bindTooltip(isBasin ? `${name} Basin` : name, {
                     sticky: true,
                     className: "ps-tooltip",
                 });
             }}
         />
     );
+}
+
+// Animate to the bounds of the selected regions. With no selection we fall
+// back to the research region — but the very first render is left to
+// FitToRegion so the initial load stays an instant fit rather than a fly-in.
+function FitToSelection({ spatialUnit, selectedCountries, selectedBasins, boundaries }) {
+    const map = useMap();
+    const mounted = useRef(false);
+    const isBasin = spatialUnit === "basins";
+    const selected = isBasin ? selectedBasins : selectedCountries;
+    const selKey = `${spatialUnit}:${selected.join("|")}`;
+
+    useEffect(() => {
+        if (!boundaries) return;
+        if (!mounted.current) {
+            mounted.current = true;
+            if (selected.length === 0) return;
+        }
+        const fc = isBasin ? boundaries.basins : boundaries.countries;
+        const labelKey = isBasin ? "basin" : "country";
+        let target = null;
+        if (selected.length > 0 && fc) {
+            const feats = fc.features.filter((f) =>
+                selected.includes(f.properties[labelKey])
+            );
+            if (feats.length) {
+                try {
+                    const b = L.geoJSON({
+                        type: "FeatureCollection",
+                        features: feats,
+                    }).getBounds();
+                    if (b.isValid()) target = b;
+                } catch (e) {
+                    /* ignore malformed geometry */
+                }
+            }
+        }
+        if (!target && boundaries.research) {
+            try {
+                const b = L.geoJSON(boundaries.research).getBounds();
+                if (b.isValid()) target = b;
+            } catch (e) {
+                /* ignore */
+            }
+        }
+        if (target) {
+            map.flyToBounds(target, { padding: [40, 40], duration: 0.8, maxZoom: 9 });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selKey, boundaries]);
+
+    return null;
 }
 
 function BasemapToggle({ basemap, onChange }) {
@@ -147,6 +229,8 @@ export default function MapView({
     stations,
     boundaries,
     spatialUnit,
+    selectedCountries,
+    selectedBasins,
     selectedAttribute,
     selectedStation,
     onStationClick,
@@ -202,6 +286,8 @@ export default function MapView({
                         spatialUnit={spatialUnit}
                         countries={boundaries.countries}
                         basins={boundaries.basins}
+                        selectedCountries={selectedCountries}
+                        selectedBasins={selectedBasins}
                     />
                     <GeoJSON
                         key="research"
@@ -215,6 +301,12 @@ export default function MapView({
                         }}
                     />
                     <FitToRegion research={boundaries.research} />
+                    <FitToSelection
+                        spatialUnit={spatialUnit}
+                        selectedCountries={selectedCountries}
+                        selectedBasins={selectedBasins}
+                        boundaries={boundaries}
+                    />
                 </>
             )}
 

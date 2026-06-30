@@ -334,6 +334,8 @@ export default function MainDashboard() {
                         stations={filteredStations}
                         boundaries={boundaries}
                         spatialUnit={options.spatialUnit}
+                        selectedCountries={options.selectedCountries}
+                        selectedBasins={options.selectedBasins}
                         selectedAttribute={options.selectedAttribute}
                         selectedStation={selectedStation}
                         onStationClick={(s) => setSelectedStation(s)}
