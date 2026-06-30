@@ -2,7 +2,13 @@ import Papa from "papaparse";
 import { getAssetPath } from "./pathUtils";
 
 // Values that should always be treated as null (numeric fields, most text fields).
-const NULL_SENTINELS = new Set(["-999.9", "-999", "UNKNOWN", "N/A", "NA", ""]);
+// The dataset uses two numeric NA codes: -999.9 and -99.
+const NULL_SENTINELS = new Set(["-999.9", "-999", "-99", "UNKNOWN", "N/A", "NA", ""]);
+// Numeric NA codes — checked again after parsing so formatting variants like
+// "-99.0" or "-999.90" are also nulled. Every numeric column here is a
+// physically non-negative quantity (height, length, area, capacity, power, …),
+// so a sentinel-valued number is always missing data, never a real value.
+const NULL_SENTINEL_NUMBERS = new Set([-999.9, -999, -99]);
 // Fields that should preserve "SEAWEA_UNKNOWN" as a real category value.
 const PRESERVE_UNKNOWN_FIELDS = new Set(["main_use"]);
 
@@ -20,7 +26,9 @@ function parseNumberSafe(v) {
     const c = cleanValue(v, null);
     if (c === null) return null;
     const n = Number(c);
-    return Number.isFinite(n) ? n : null;
+    if (!Number.isFinite(n)) return null;
+    if (NULL_SENTINEL_NUMBERS.has(n)) return null;
+    return n;
 }
 
 function normalizeStationRow(row) {
