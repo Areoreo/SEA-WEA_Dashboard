@@ -4,6 +4,8 @@ import {
     USE_COLORS,
     USE_LABEL,
     COUNTRIES,
+    BASINS,
+    BASIN_LABEL,
     NUMERIC_ATTRIBUTES,
 } from "../../utils/constants";
 import UseIcon from "../icons/UseIcon";
@@ -71,6 +73,13 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
             : [...options.selectedCountries, c];
         update("selectedCountries", next);
     };
+    const toggleBasin = (b) => {
+        const next = options.selectedBasins.includes(b)
+            ? options.selectedBasins.filter((x) => x !== b)
+            : [...options.selectedBasins, b];
+        update("selectedBasins", next);
+    };
+    const byBasin = options.spatialUnit === "basins";
 
     return (
         <aside
@@ -130,6 +139,11 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                         Countries
                     </Toggle>
                 </div>
+                <p className="mt-2 text-[12px] text-ps-bodyGray">
+                    {byBasin
+                        ? "Map shows basin boundaries — filter stations by basin below."
+                        : "Map shows country boundaries — filter stations by country below."}
+                </p>
 
                 <SectionTitle>Stations</SectionTitle>
                 <div className="space-y-2">
@@ -162,24 +176,49 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                     </label>
                 </div>
 
-                <SectionTitle>Countries</SectionTitle>
-                <div className="flex flex-wrap gap-2">
-                    {COUNTRIES.map((c) => (
-                        <Chip
-                            key={c}
-                            active={options.selectedCountries.includes(c)}
-                            onClick={() => toggleCountry(c)}
-                            color="#0070cc"
-                        >
-                            {c}
-                        </Chip>
-                    ))}
-                </div>
-                <p className="mt-2 text-[12px] text-ps-bodyGray">
-                    {options.selectedCountries.length === 0
-                        ? "All countries shown."
-                        : `Filter: ${options.selectedCountries.length} selected.`}
-                </p>
+                {byBasin ? (
+                    <>
+                        <SectionTitle>Basins</SectionTitle>
+                        <div className="flex flex-wrap gap-2">
+                            {BASINS.map((b) => (
+                                <Chip
+                                    key={b}
+                                    active={options.selectedBasins.includes(b)}
+                                    onClick={() => toggleBasin(b)}
+                                    color="#0070cc"
+                                >
+                                    {BASIN_LABEL[b] || b}
+                                </Chip>
+                            ))}
+                        </div>
+                        <p className="mt-2 text-[12px] text-ps-bodyGray">
+                            {options.selectedBasins.length === 0
+                                ? "All basins shown."
+                                : `Filter: ${options.selectedBasins.length} selected.`}
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        <SectionTitle>Countries</SectionTitle>
+                        <div className="flex flex-wrap gap-2">
+                            {COUNTRIES.map((c) => (
+                                <Chip
+                                    key={c}
+                                    active={options.selectedCountries.includes(c)}
+                                    onClick={() => toggleCountry(c)}
+                                    color="#0070cc"
+                                >
+                                    {c}
+                                </Chip>
+                            ))}
+                        </div>
+                        <p className="mt-2 text-[12px] text-ps-bodyGray">
+                            {options.selectedCountries.length === 0
+                                ? "All countries shown."
+                                : `Filter: ${options.selectedCountries.length} selected.`}
+                        </p>
+                    </>
+                )}
 
                 <SectionTitle>Main Use Types</SectionTitle>
                 <div className="flex flex-wrap gap-2">

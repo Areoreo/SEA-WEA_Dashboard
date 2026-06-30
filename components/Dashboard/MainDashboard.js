@@ -6,6 +6,7 @@ import DynamicPanel from "../DynamicPanel/DynamicPanel";
 import Legend from "../Map/Legend";
 import { loadStations, loadAllBoundaries, loadDynamicIndex } from "../../utils/dataLoader";
 import { isOperational, DEFAULT_BASEMAP } from "../../utils/constants";
+import { assignFeature } from "../../utils/geoUtils";
 
 const MapView = dynamic(() => import("../Map/MapView"), {
     ssr: false,
@@ -23,6 +24,7 @@ const DEFAULT_OPTIONS = {
     overview: "current",
     spatialUnit: "basins",
     selectedCountries: [],
+    selectedBasins: [],
     selectedUses: [],
     selectedAttribute: "normal_capacity_mcm",
     showCritical: true,
@@ -135,6 +137,22 @@ export default function MainDashboard() {
 
     const update = (k, v) => setOptions((prev) => ({ ...prev, [k]: v }));
 
+    // Stations carry no basin field — derive each station's basin once (point in
+    // polygon against the basin boundaries) so the "Basins" spatial unit can
+    // filter by region the same way "Countries" filters by `s.country`.
+    const stationBasins = useMemo(() => {
+        if (!boundaries?.basins) return null;
+        const map = new Map();
+        for (const s of stations) {
+            if (!Number.isFinite(s.longitude) || !Number.isFinite(s.latitude)) continue;
+            map.set(
+                s.SEAWEA_ID,
+                assignFeature(s.longitude, s.latitude, boundaries.basins, "basin")
+            );
+        }
+        return map;
+    }, [stations, boundaries]);
+
     const filteredStations = useMemo(() => {
         return stations.filter((s) => {
             const op = isOperational(s.status);
@@ -142,11 +160,19 @@ export default function MainDashboard() {
             if (options.overview === "future" && op) return false;
             if (!options.showCritical && s.is_critical) return false;
             if (!options.showNonCritical && !s.is_critical) return false;
-            if (
+            // Region filter follows the active spatial unit: basins when
+            // "Basins" is selected, country otherwise.
+            if (options.spatialUnit === "basins") {
+                if (options.selectedBasins.length > 0) {
+                    const basin = stationBasins ? stationBasins.get(s.SEAWEA_ID) : null;
+                    if (!basin || !options.selectedBasins.includes(basin)) return false;
+                }
+            } else if (
                 options.selectedCountries.length > 0 &&
                 !options.selectedCountries.includes(s.country)
-            )
+            ) {
                 return false;
+            }
             if (
                 options.selectedUses.length > 0 &&
                 !options.selectedUses.includes(s.main_use)
@@ -154,7 +180,7 @@ export default function MainDashboard() {
                 return false;
             return true;
         });
-    }, [stations, options]);
+    }, [stations, options, stationBasins]);
 
     const usesInView = useMemo(
         () => Array.from(new Set(filteredStations.map((s) => s.main_use).filter(Boolean))),

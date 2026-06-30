@@ -38,6 +38,11 @@ export const COUNTRY_COLORS = {
 
 export const BASINS = ["ChaoPhraya", "Irrawaddy", "Mekong", "Red", "Salween", "Other"];
 
+// UI label overrides — the raw `basin` property value is kept in the data.
+export const BASIN_LABEL = {
+    ChaoPhraya: "Chao Phraya",
+};
+
 export const BASIN_COLORS = {
     ChaoPhraya: "#cfeaff",
     Irrawaddy: "#ffdfc0",

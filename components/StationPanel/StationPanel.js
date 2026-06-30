@@ -23,7 +23,7 @@ export default function StationPanel({ station, onClose, onDynamicInfo, hasDynam
         station.reservoir_name || station.station_name || station.dam_name || "Station";
     return (
         <div
-            className="absolute top-4 right-4 w-[360px] max-h-[calc(100%-2rem)] overflow-y-auto bg-white rounded-ps-lg z-[500] animate-[slideIn_220ms_ease]"
+            className="absolute top-4 right-4 w-[360px] max-h-[calc(100%-2rem)] overflow-y-auto bg-white rounded-ps-lg z-[1100] animate-[slideIn_220ms_ease]"
             style={{ boxShadow: "0 5px 28px 0 rgba(0,0,0,0.2)" }}
         >
             <style jsx>{`
@@ -39,17 +39,25 @@ export default function StationPanel({ station, onClose, onDynamicInfo, hasDynam
                 }
             `}</style>
             <div
-                className="relative p-5 text-white rounded-t-ps-lg"
+                className="relative p-5 pr-14 text-white rounded-t-ps-lg"
                 style={{
                     background: `linear-gradient(135deg, ${color} 0%, #0070cc 140%)`,
                 }}
             >
                 <button
-                    className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/25 text-white flex items-center justify-center hover:bg-black/45 transition"
+                    type="button"
+                    className="absolute top-3 right-3 z-10 h-9 w-9 rounded-full bg-black/25 text-white flex items-center justify-center cursor-pointer hover:bg-black/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 transition-colors"
                     aria-label="Close"
                     onClick={onClose}
                 >
-                    ✕
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                            d="M6 6 18 18 M18 6 6 18"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                        />
+                    </svg>
                 </button>
                 <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.12em] opacity-90">
                     {station.is_critical ? "Critical Station" : "Non-critical Station"}
