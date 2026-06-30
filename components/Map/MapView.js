@@ -351,9 +351,14 @@ export default function MapView({
             })}
 
             <FlyToStation target={selectedStation} />
-            {summaryVisible && boundaries?.basins && (
+            {summaryVisible && boundaries && (
                 <SummaryLayer
-                    basins={boundaries.basins}
+                    features={
+                        spatialUnit === "countries"
+                            ? boundaries.countries
+                            : boundaries.basins
+                    }
+                    labelKey={spatialUnit === "countries" ? "country" : "basin"}
                     stations={stations}
                     selectedAttribute={selectedAttribute}
                 />

@@ -121,7 +121,7 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                 <p className="mt-2 text-[12px] text-ps-bodyGray">
                     {options.overview === "current"
                         ? "Showing operational stations only."
-                        : "Showing planned, under-construction, and non-operational stations."}
+                        : "Showing planned and under-construction stations only."}
                 </p>
 
                 <SectionTitle>Spatial Unit</SectionTitle>

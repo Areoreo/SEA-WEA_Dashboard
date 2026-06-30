@@ -4,20 +4,26 @@ import L from "leaflet";
 import {
     NUMERIC_ATTRIBUTES,
     SUMMARY_CLASSES,
+    SUMMARY_PLOT_POSITIONS,
     classifyStation,
-    formatNumber,
 } from "../../utils/constants";
 import { assignFeature, featureCentroid } from "../../utils/geoUtils";
 
-// Fixed pixel geometry of the bar plot — deliberately chunky so the three
-// bars stay legible at small zooms but still fit over a basin centroid.
-const BAR_WIDTH = 18;
-const BAR_GAP = 6;
-const PLOT_MAX_HEIGHT = 90;
-const PLOT_PAD_X = 10;
-const PLOT_PAD_Y = 14;
-const LABEL_HEIGHT = 34;
+// --- Plot geometry (px) -----------------------------------------------------
+// The bars are drawn as an inline SVG with exact polygon faces (front / top /
+// right) rather than CSS-skewed divs. Computing each face's corner points
+// directly removes the sub-pixel rounding/translate drift that made the old
+// skewed-div faces look misaligned, and keeps everything crisp at any DPR.
+const BAR_W = 20;
+const BAR_GAP = 14;
+const DEPTH = 8; // isometric offset (up-right) for the top/right faces
+const MAX_H = 78;
+const NUM_SPACE = 18; // headroom above the tallest bar for its value label
+const MARGIN_X = 18;
+const LABEL_GAP = 8;
+const LABEL_H = 24;
 
+// Lighten (+) / darken (-) a hex color by a percentage of full white/black.
 function shade(hex, percent) {
     const h = hex.replace("#", "");
     const num = parseInt(
@@ -33,95 +39,105 @@ function shade(hex, percent) {
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
-// Build the HTML string for a single 3D bar. Front / top / right faces are
-// skewed divs for the same "power-on" depth as the other 3D bar components.
-function barHtml(value, maxValue, color, depth = 8) {
-    const pct = maxValue > 0 ? Math.max(0.02, value / maxValue) : 0;
-    const h = Math.round(PLOT_MAX_HEIGHT * pct);
-    const front = `linear-gradient(180deg, ${color} 0%, ${shade(color, -20)} 100%)`;
-    const top = `linear-gradient(180deg, ${shade(color, 18)} 0%, ${color} 100%)`;
-    const right = `linear-gradient(90deg, ${shade(color, -15)} 0%, ${shade(color, -35)} 100%)`;
-    return `
-        <div class="ps-sumbar" style="width:${BAR_WIDTH}px;height:${h}px;">
-            <div class="ps-sumbar-front" style="background:${front};"></div>
-            <div class="ps-sumbar-top" style="background:${top};width:${BAR_WIDTH}px;height:${depth}px;top:${-depth / 2}px;"></div>
-            <div class="ps-sumbar-right" style="background:${right};width:${depth}px;height:100%;right:${-depth / 2}px;"></div>
-        </div>
-    `;
+// Compact value formatter for the on-bar labels so large sums (e.g. capacity)
+// stay narrow enough to sit over a single bar.
+function compact(v) {
+    if (!Number.isFinite(v)) return "";
+    const a = Math.abs(v);
+    if (a >= 1e9) return (v / 1e9).toFixed(1).replace(/\.0$/, "") + "B";
+    if (a >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+    if (a >= 1e3) return (v / 1e3).toFixed(1).replace(/\.0$/, "") + "k";
+    return String(Math.round(v));
 }
 
-function plotHtml({ label, bars, maxValue, metricLabel, metricMode }) {
-    const totalWidth =
-        SUMMARY_CLASSES.length * BAR_WIDTH +
-        (SUMMARY_CLASSES.length - 1) * BAR_GAP +
-        PLOT_PAD_X * 2;
-    const totalHeight = PLOT_MAX_HEIGHT + PLOT_PAD_Y + LABEL_HEIGHT;
+const N = SUMMARY_CLASSES.length;
+const BARS_W = N * BAR_W + (N - 1) * BAR_GAP;
+const SVG_W = MARGIN_X * 2 + BARS_W + DEPTH;
+const Y_BASE = NUM_SPACE + DEPTH + MAX_H; // y of the bar baseline (front bottom)
+const SVG_H = Y_BASE + LABEL_GAP + LABEL_H;
 
-    const barsHtml = SUMMARY_CLASSES.map((cls) => {
-        const value = bars[cls.key] ?? 0;
-        return `
-            <div class="ps-sumbar-col" title="${cls.label}: ${formatNumber(value)}">
-                ${barHtml(value, maxValue, cls.color)}
-            </div>
-        `;
+function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function barSvg(value, maxValue, color, x) {
+    const pct = maxValue > 0 ? value / maxValue : 0;
+    const h = value > 0 ? Math.max(3, Math.round(MAX_H * pct)) : 0;
+    const yTop = Y_BASE - h;
+    const xr = x + BAR_W; // front right edge
+    const front = color;
+    const top = shade(color, 20);
+    const side = shade(color, -24);
+    const stroke = "rgba(0,0,0,0.10)";
+
+    const faces =
+        h > 0
+            ? `
+        <polygon points="${xr},${yTop} ${xr + DEPTH},${yTop - DEPTH} ${xr + DEPTH},${Y_BASE - DEPTH} ${xr},${Y_BASE}" fill="${side}" stroke="${stroke}" stroke-width="0.5"/>
+        <polygon points="${x},${yTop} ${x + DEPTH},${yTop - DEPTH} ${xr + DEPTH},${yTop - DEPTH} ${xr},${yTop}" fill="${top}" stroke="${stroke}" stroke-width="0.5"/>
+        <rect x="${x}" y="${yTop}" width="${BAR_W}" height="${h}" fill="${front}" stroke="${stroke}" stroke-width="0.5"/>`
+            : "";
+
+    const numX = x + BAR_W / 2 + DEPTH / 2;
+    const numY = (h > 0 ? yTop - DEPTH : Y_BASE - DEPTH) - 5;
+    const num = `<text x="${numX}" y="${numY}" text-anchor="middle" font-size="10" font-weight="700" fill="#1f1f1f" stroke="#ffffff" stroke-width="2.6" paint-order="stroke" style="paint-order:stroke">${esc(
+        compact(value)
+    )}</text>`;
+
+    return faces + num;
+}
+
+function plotSvg(name, bars, maxValue) {
+    const barsSvg = SUMMARY_CLASSES.map((cls, i) => {
+        const x = MARGIN_X + i * (BAR_W + BAR_GAP);
+        return barSvg(bars[cls.key] ?? 0, maxValue, cls.color, x);
     }).join("");
 
-    return `
-        <div class="ps-sumplot" style="width:${totalWidth}px;height:${totalHeight}px;">
-            <div class="ps-sumplot-bars" style="height:${PLOT_MAX_HEIGHT}px;gap:${BAR_GAP}px;padding:0 ${PLOT_PAD_X}px;">
-                ${barsHtml}
-            </div>
-            <div class="ps-sumplot-label">
-                <div class="ps-sumplot-basin">${label}</div>
-                <div class="ps-sumplot-metric">${metricLabel} · ${metricMode === "sum" ? "sum" : "count"}</div>
-            </div>
-        </div>
-    `;
+    const labelY = Y_BASE + LABEL_GAP;
+    const label = `
+        <rect x="2" y="${labelY}" width="${SVG_W - 4}" height="${LABEL_H}" rx="6" fill="rgba(255,255,255,0.95)"/>
+        <text x="${SVG_W / 2}" y="${labelY + LABEL_H / 2 + 4}" text-anchor="middle" font-size="12" font-weight="600" fill="#1f1f1f" style="letter-spacing:-0.1px">${esc(
+            name
+        )}</text>`;
+
+    return `<svg class="ps-sumplot" width="${SVG_W}" height="${SVG_H}" viewBox="0 0 ${SVG_W} ${SVG_H}" style="overflow:visible">${barsSvg}${label}</svg>`;
 }
 
-export default function SummaryLayer({ basins, stations, selectedAttribute }) {
+export default function SummaryLayer({ features, labelKey, stations, selectedAttribute }) {
     const attrMeta = useMemo(
         () => NUMERIC_ATTRIBUTES.find((a) => a.key === selectedAttribute),
         [selectedAttribute]
     );
     const mode = attrMeta?.summary || "count";
-    const metricLabel = attrMeta?.label || selectedAttribute;
 
     const data = useMemo(() => {
-        if (!basins || !basins.features) return [];
-        // Pre-seed every basin so empty ones still render a (flat) plot.
-        const byBasin = {};
-        for (const f of basins.features) {
-            const name = f.properties?.basin;
+        if (!features || !features.features) return [];
+        // Pre-seed every region so empty ones still render a (flat) plot.
+        const byRegion = {};
+        for (const f of features.features) {
+            const name = f.properties?.[labelKey];
             if (!name) continue;
-            byBasin[name] = {
+            byRegion[name] = {
                 name,
                 feature: f,
                 bars: { critical: 0, nonCritical: 0, unknown: 0 },
             };
         }
         for (const s of stations) {
-            const basinName = assignFeature(
-                s.longitude,
-                s.latitude,
-                basins,
-                "basin"
-            );
-            if (!basinName || !byBasin[basinName]) continue;
+            const name = assignFeature(s.longitude, s.latitude, features, labelKey);
+            if (!name || !byRegion[name]) continue;
             const cls = classifyStation(s);
             if (mode === "sum") {
                 const v = s[selectedAttribute];
-                if (Number.isFinite(v)) byBasin[basinName].bars[cls] += v;
-            } else {
-                // count: include only stations that actually have the attribute
-                // value, so the choice of attribute continues to matter.
-                if (Number.isFinite(s[selectedAttribute])) {
-                    byBasin[basinName].bars[cls] += 1;
-                }
+                if (Number.isFinite(v)) byRegion[name].bars[cls] += v;
+            } else if (Number.isFinite(s[selectedAttribute])) {
+                // count: only stations that actually carry the attribute, so the
+                // chosen attribute keeps mattering.
+                byRegion[name].bars[cls] += 1;
             }
         }
-        return Object.values(byBasin);
-    }, [basins, stations, selectedAttribute, mode]);
+        return Object.values(byRegion);
+    }, [features, labelKey, stations, selectedAttribute, mode]);
 
     const maxValue = useMemo(() => {
         let m = 0;
@@ -136,34 +152,33 @@ export default function SummaryLayer({ basins, stations, selectedAttribute }) {
     return (
         <>
             {data.map((d) => {
-                const centroid = featureCentroid(d.feature);
-                if (!centroid) return null;
-                const [lng, lat] = centroid;
-                const html = plotHtml({
-                    label: d.name,
-                    bars: d.bars,
-                    maxValue,
-                    metricLabel,
-                    metricMode: mode,
-                });
-                const totalWidth =
-                    SUMMARY_CLASSES.length * BAR_WIDTH +
-                    (SUMMARY_CLASSES.length - 1) * BAR_GAP +
-                    PLOT_PAD_X * 2;
-                const totalHeight = PLOT_MAX_HEIGHT + PLOT_PAD_Y + LABEL_HEIGHT;
+                // Hard-coded anchor wins; otherwise fall back to the centroid.
+                // Override is [lat, lng]; featureCentroid returns [lng, lat].
+                const override = SUMMARY_PLOT_POSITIONS[d.name];
+                let position;
+                if (Array.isArray(override) && override.length === 2) {
+                    position = override;
+                } else {
+                    const centroid = featureCentroid(d.feature);
+                    if (!centroid) return null;
+                    position = [centroid[1], centroid[0]];
+                }
                 const icon = L.divIcon({
                     className: "ps-sumplot-wrapper",
-                    html,
-                    iconSize: [totalWidth, totalHeight],
-                    iconAnchor: [totalWidth / 2, totalHeight],
+                    html: plotSvg(d.name, d.bars, maxValue),
+                    iconSize: [SVG_W, SVG_H],
+                    iconAnchor: [SVG_W / 2, SVG_H],
                 });
                 return (
                     <Marker
                         key={d.name}
-                        position={[lat, lng]}
+                        position={position}
                         icon={icon}
                         interactive={false}
                         keyboard={false}
+                        // Float the plots above every station marker so scatter
+                        // dots never cover a bar group.
+                        zIndexOffset={1000000}
                     />
                 );
             })}

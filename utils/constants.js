@@ -59,6 +59,16 @@ export function isOperational(status) {
     return String(status).trim().toLowerCase() === "operational";
 }
 
+// "Future" = stations that are coming but not yet running. Deliberately a
+// closed allow-list: "potential", "cancelled", "postponed", "closed" and
+// unknown status are NOT future.
+export const FUTURE_STATUSES = new Set(["under construction", "planned"]);
+
+export function isFutureStatus(status) {
+    if (!status) return false;
+    return FUTURE_STATUSES.has(String(status).trim().toLowerCase());
+}
+
 // `summary` drives the per-basin summary bar plot:
 //   "sum"   → bar height is the sum of this attribute per class
 //   "count" → bar height is the count of stations (with data) per class
@@ -76,6 +86,23 @@ export const SUMMARY_CLASSES = [
     { key: "nonCritical", label: "Non-critical", color: "#8aa0b4" },
     { key: "unknown", label: "Unknown", color: "#c9ced4" },
 ];
+
+// Optional hard-coded anchor for each Summary bar plot, keyed by the region's
+// raw name (basin key or country name). Value is [lat, lng].
+//
+// Irregular basin/country outlines mean the geometric centroid can land off
+// the polygon or somewhere awkward; add an entry here to pin a plot exactly
+// where you want it. Any region without an entry falls back to its centroid
+// (utils/geoUtils.featureCentroid). Tweak these once you've eyeballed the map.
+//
+//   Basin keys:   "ChaoPhraya", "Irrawaddy", "Mekong", "Red", "Salween", "Other"
+//   Country keys: "Cambodia", "Laos", "Myanmar", "Thailand", "Vietnam"
+export const SUMMARY_PLOT_POSITIONS = {
+    Mekong: [15.5, 104.5],
+    // "ChaoPhraya": [15.5, 100.2],
+    Salween: [20.0, 98.0],
+    Other: [13.4, 108.9],
+};
 
 // Classify a station into one of the three summary classes.
 // - critical    = is_critical === true

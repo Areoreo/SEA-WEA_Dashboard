@@ -5,7 +5,7 @@ import StationPanel from "../StationPanel/StationPanel";
 import DynamicPanel from "../DynamicPanel/DynamicPanel";
 import Legend from "../Map/Legend";
 import { loadStations, loadAllBoundaries, loadDynamicIndex } from "../../utils/dataLoader";
-import { isOperational, DEFAULT_BASEMAP } from "../../utils/constants";
+import { isOperational, isFutureStatus, DEFAULT_BASEMAP } from "../../utils/constants";
 import { assignFeature } from "../../utils/geoUtils";
 
 const MapView = dynamic(() => import("../Map/MapView"), {
@@ -155,9 +155,8 @@ export default function MainDashboard() {
 
     const filteredStations = useMemo(() => {
         return stations.filter((s) => {
-            const op = isOperational(s.status);
-            if (options.overview === "current" && !op) return false;
-            if (options.overview === "future" && op) return false;
+            if (options.overview === "current" && !isOperational(s.status)) return false;
+            if (options.overview === "future" && !isFutureStatus(s.status)) return false;
             if (!options.showCritical && s.is_critical) return false;
             if (!options.showNonCritical && !s.is_critical) return false;
             // Region filter follows the active spatial unit: basins when
@@ -351,7 +350,9 @@ export default function MainDashboard() {
                         style={{ boxShadow: "0 5px 9px 0 rgba(0,0,0,0.12)" }}
                     >
                         <div className="text-[10px] uppercase tracking-[0.1em] text-ps-bodyGray font-semibold">
-                            {options.overview === "current" ? "Operational" : "Planned / Other"}
+                            {options.overview === "current"
+                                ? "Operational"
+                                : "Planned / Under construction"}
                         </div>
                         <div className="mt-0.5 flex items-baseline gap-2">
                             <div
@@ -374,6 +375,7 @@ export default function MainDashboard() {
                         usesInView={usesInView}
                         hasCritical={hasCritical}
                         hasNonCritical={hasNonCritical}
+                        summaryVisible={summaryOpen}
                     />
 
                     {selectedStation && (

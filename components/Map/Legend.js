@@ -4,6 +4,7 @@ import {
     USE_COLORS,
     USE_LABEL,
     NUMERIC_ATTRIBUTES,
+    SUMMARY_CLASSES,
     formatNumber,
 } from "../../utils/constants";
 import UseIcon from "../icons/UseIcon";
@@ -34,10 +35,12 @@ export default function Legend({
     usesInView,
     hasCritical,
     hasNonCritical,
+    summaryVisible,
 }) {
     const [open, setOpen] = useState(true);
     const attrMeta = NUMERIC_ATTRIBUTES.find((a) => a.key === attributeKey);
     const attrLabel = attrMeta?.label || attributeKey;
+    const summaryMode = attrMeta?.summary === "sum" ? "sum" : "count";
 
     const uses = useMemo(() => {
         const set = new Set(usesInView || []);
@@ -79,7 +82,35 @@ export default function Legend({
             </button>
 
             {open && (
-                <div className="px-4 pb-4 space-y-4">
+                <div
+                    className="px-4 pb-4 space-y-4 overflow-y-auto overflow-x-hidden"
+                    style={{ maxHeight: "60vh" }}
+                >
+                    {/* Summary bars — only while Summary mode is on */}
+                    {summaryVisible && (
+                        <div>
+                            <div className="text-[10px] uppercase tracking-[0.08em] text-ps-bodyGray font-semibold">
+                                Summary Bars
+                            </div>
+                            <p className="mt-1 text-[11px] text-ps-bodyGray leading-snug">
+                                Bar height = {summaryMode} of {attrLabel}.
+                            </p>
+                            <div className="mt-2 space-y-1.5">
+                                {SUMMARY_CLASSES.map((c) => (
+                                    <div key={c.key} className="flex items-center gap-2">
+                                        <span
+                                            className="flex-none w-3 h-3 rounded-[2px]"
+                                            style={{ background: c.color }}
+                                        />
+                                        <span className="text-[12px] text-ps-charcoal">
+                                            {c.label}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Station type */}
                     <div>
                         <div className="text-[10px] uppercase tracking-[0.08em] text-ps-bodyGray font-semibold">
