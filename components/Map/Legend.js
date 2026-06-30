@@ -11,7 +11,7 @@ import UseIcon from "../icons/UseIcon";
 const SIZE_MIN = 22;
 const SIZE_MAX = 44;
 
-function CriticalSwatch({ size, label, color = "#1eaedb" }) {
+function CriticalSwatch({ size, label, color = "#9aa5b1" }) {
     return (
         <div className="flex flex-col items-center gap-1">
             <div
@@ -89,34 +89,17 @@ export default function Legend({
                             {hasCritical && (
                                 <div className="flex items-center gap-3">
                                     <div className="relative flex-none w-8 h-8 flex items-center justify-center">
-                                        <span
-                                            className="absolute inset-0 rounded-full"
-                                            style={{
-                                                background:
-                                                    "radial-gradient(circle, rgba(30,174,219,0.45) 0%, rgba(30,174,219,0) 70%)",
-                                            }}
-                                        />
                                         <div
-                                            className="relative w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white"
-                                            style={{
-                                                background: "#1eaedb",
-                                                boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
-                                            }}
-                                        >
-                                            <svg width="10" height="10" viewBox="0 0 24 24">
-                                                <path
-                                                    d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"
-                                                    fill="#fff"
-                                                />
-                                            </svg>
-                                        </div>
+                                            className="ps-legend-pulse w-3.5 h-3.5 rounded-full border-2 border-white"
+                                            style={{ background: "#9aa5b1" }}
+                                        />
                                     </div>
                                     <div>
                                         <div className="text-[13px] text-ps-charcoal font-medium leading-tight">
                                             Critical
                                         </div>
                                         <div className="text-[11px] text-ps-bodyGray leading-tight">
-                                            Glyph disc, white border, pulse
+                                            Pulsing ring
                                         </div>
                                     </div>
                                 </div>
@@ -125,7 +108,7 @@ export default function Legend({
                                 <div className="flex items-center gap-3">
                                     <div className="flex-none w-8 h-8 flex items-center justify-center">
                                         <div
-                                            className="w-2.5 h-2.5 rounded-full border border-white"
+                                            className="w-3.5 h-3.5 rounded-full border-2 border-white"
                                             style={{
                                                 background: "#9aa5b1",
                                                 boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
@@ -137,7 +120,7 @@ export default function Legend({
                                             Non-critical
                                         </div>
                                         <div className="text-[11px] text-ps-bodyGray leading-tight">
-                                            Filled dot, use color
+                                            No ring
                                         </div>
                                     </div>
                                 </div>
@@ -186,9 +169,9 @@ export default function Legend({
                             <div className="text-[10px] uppercase tracking-[0.08em] text-ps-bodyGray font-semibold">
                                 Main Use (color)
                             </div>
-                            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                            <div className="mt-2 space-y-1.5">
                                 {uses.map((u) => (
-                                    <div key={u} className="flex items-center gap-2 min-w-0">
+                                    <div key={u} className="flex items-center gap-2">
                                         <span
                                             className="flex-none w-3 h-3 rounded-full"
                                             style={{ background: USE_COLORS[u] }}
@@ -196,7 +179,7 @@ export default function Legend({
                                         <span className="flex-none text-ps-bodyGray">
                                             <UseIcon use={u} size={12} />
                                         </span>
-                                        <span className="text-[12px] text-ps-charcoal truncate">
+                                        <span className="text-[12px] text-ps-charcoal">
                                             {USE_LABEL[u] || u}
                                         </span>
                                     </div>

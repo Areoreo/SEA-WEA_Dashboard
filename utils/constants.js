@@ -16,9 +16,9 @@ export const USE_LABEL = {
 // Accessible, distinct color per use — all sit within a cool/neutral gamut to
 // keep the PlayStation voice. "Unknown" is intentionally muted.
 export const USE_COLORS = {
-    Hydropower: "#1eaedb",
+    Hydropower: "#5cc5ef",
     Irrigation: "#7bc36a",
-    "Water supply": "#53b1ff",
+    "Water supply": "#0a4f9e",
     "Flood control": "#ffb454",
     "Multiple purpose": "#b388ff",
     SEAWEA_UNKNOWN: "#9aa5b1",

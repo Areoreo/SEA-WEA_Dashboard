@@ -181,6 +181,12 @@ body,
     animation: ps-pulse 2.1s infinite;
 }
 
+// Pulsing ring used in the legend swatch to mark the Critical station type —
+// the ring is the one signal that separates Critical from Non-critical.
+.ps-legend-pulse {
+    animation: ps-pulse 2.1s infinite;
+}
+
 .ps-marker:hover {
     transform: scale(1.2);
     z-index: 500;
