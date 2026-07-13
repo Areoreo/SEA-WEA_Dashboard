@@ -1,18 +1,18 @@
 import React, { useMemo, useState } from "react";
 import {
     MAIN_USES,
-    USE_COLORS,
     USE_LABEL,
     NUMERIC_ATTRIBUTES,
     SUMMARY_CLASSES,
     formatNumber,
 } from "../../utils/constants";
 import UseIcon from "../icons/UseIcon";
+import { useTheme } from "../Theme/ThemeProvider";
 
 const SIZE_MIN = 22;
 const SIZE_MAX = 44;
 
-function CriticalSwatch({ size, label, color = "#9aa5b1" }) {
+function CriticalSwatch({ size, label, color = "var(--ink-3)" }) {
     return (
         <div className="flex flex-col items-center gap-1">
             <div
@@ -38,6 +38,7 @@ export default function Legend({
     summaryVisible,
 }) {
     const [open, setOpen] = useState(true);
+    const { theme } = useTheme();
     const attrMeta = NUMERIC_ATTRIBUTES.find((a) => a.key === attributeKey);
     const attrLabel = attrMeta?.label || attributeKey;
     const summaryMode = attrMeta?.summary === "sum" ? "sum" : "count";
@@ -54,25 +55,24 @@ export default function Legend({
 
     return (
         <div
-            className="absolute bottom-6 left-4 z-[400] bg-white/95 backdrop-blur rounded-ps-md overflow-hidden"
+            className="absolute bottom-6 left-4 z-[400] glass-panel rounded-ps-md overflow-hidden shadow-float"
             style={{
-                boxShadow: "0 5px 14px rgba(0,0,0,0.14)",
                 width: open ? 260 : "auto",
             }}
         >
             <button
-                className="w-full flex items-center justify-between px-4 py-2 hover:bg-[#f5f7fa] transition"
+                className="w-full flex items-center justify-between px-4 py-2 hover:bg-panel-soft transition"
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
             >
                 <div className="flex items-center gap-2">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <rect x="3" y="5" width="4" height="4" rx="1" fill="#0070cc" />
-                        <rect x="9" y="5" width="12" height="2" rx="1" fill="#6b6b6b" />
-                        <rect x="3" y="11" width="4" height="4" rx="1" fill="#1eaedb" />
-                        <rect x="9" y="11" width="12" height="2" rx="1" fill="#6b6b6b" />
-                        <rect x="3" y="17" width="4" height="4" rx="1" fill="#7bc36a" />
-                        <rect x="9" y="17" width="12" height="2" rx="1" fill="#6b6b6b" />
+                        <rect x="3" y="5" width="4" height="4" rx="1" fill={theme.tokens.accent} />
+                        <rect x="9" y="5" width="12" height="2" rx="1" fill={theme.tokens.ink2} />
+                        <rect x="3" y="11" width="4" height="4" rx="1" fill={theme.tokens.accent2} />
+                        <rect x="9" y="11" width="12" height="2" rx="1" fill={theme.tokens.ink2} />
+                        <rect x="3" y="17" width="4" height="4" rx="1" fill={theme.data.use.Irrigation} />
+                        <rect x="9" y="17" width="12" height="2" rx="1" fill={theme.tokens.ink2} />
                     </svg>
                     <span className="text-[12px] uppercase tracking-[0.1em] font-semibold text-ps-charcoal">
                         Legend
@@ -100,7 +100,7 @@ export default function Legend({
                                     <div key={c.key} className="flex items-center gap-2">
                                         <span
                                             className="flex-none w-3 h-3 rounded-[2px]"
-                                            style={{ background: c.color }}
+                                            style={{ background: theme.data.summary[c.key] }}
                                         />
                                         <span className="text-[12px] text-ps-charcoal">
                                             {c.label}
@@ -122,7 +122,7 @@ export default function Legend({
                                     <div className="relative flex-none w-8 h-8 flex items-center justify-center">
                                         <div
                                             className="ps-legend-pulse w-3.5 h-3.5 rounded-full border-2 border-white"
-                                            style={{ background: "#9aa5b1" }}
+                                            style={{ background: "var(--ink-3)" }}
                                         />
                                     </div>
                                     <div>
@@ -141,7 +141,7 @@ export default function Legend({
                                         <div
                                             className="w-3.5 h-3.5 rounded-full border-2 border-white"
                                             style={{
-                                                background: "#9aa5b1",
+                                                background: "var(--ink-3)",
                                                 boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
                                             }}
                                         />
@@ -205,7 +205,7 @@ export default function Legend({
                                     <div key={u} className="flex items-center gap-2">
                                         <span
                                             className="flex-none w-3 h-3 rounded-full"
-                                            style={{ background: USE_COLORS[u] }}
+                                            style={{ background: theme.data.use[u] }}
                                         />
                                         <span className="flex-none text-ps-bodyGray">
                                             <UseIcon use={u} size={12} />

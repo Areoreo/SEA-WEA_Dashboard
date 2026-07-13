@@ -2,15 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, Marker, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import {
-    USE_COLORS,
-    USE_COLOR_FALLBACK,
-    COUNTRY_COLORS,
-    BASIN_COLORS,
-    BASEMAPS,
-} from "../../utils/constants";
+import { BASEMAPS } from "../../utils/constants";
 import { buildUseIconSvg } from "../icons/UseIcon";
 import SummaryLayer from "../Summary/SummaryLayer";
+import { useTheme } from "../Theme/ThemeProvider";
 
 function FitToRegion({ research }) {
     const map = useMap();
@@ -60,11 +55,11 @@ export function computeScale(stations, attrKey) {
     return { scale: fn, min, max };
 }
 
-function buildCriticalIcon(station, size, isSelected) {
-    const color = USE_COLORS[station.main_use] || USE_COLOR_FALLBACK;
+function buildCriticalIcon(station, size, isSelected, theme) {
+    const color = theme.data.use[station.main_use] || theme.data.useFallback;
     const glyph = buildUseIconSvg(station.main_use, "#ffffff", Math.round(size * 0.55));
     const ring = isSelected
-        ? "box-shadow:0 0 0 3px #0070cc,0 0 0 6px rgba(30,174,219,0.35),0 2px 6px rgba(0,0,0,0.35);"
+        ? `box-shadow:0 0 0 3px ${theme.map.selectedOutline},0 0 0 6px rgb(var(--pulse-rgb) / 0.35),0 2px 6px rgba(0,0,0,0.35);`
         : "";
     const pulseCls = " critical";
     const selectedCls = isSelected ? " selected" : "";
@@ -76,52 +71,51 @@ function buildCriticalIcon(station, size, isSelected) {
     });
 }
 
-// Light grey used for the regions that are NOT part of the active selection.
-const DIMMED_FILL = "#e3e7eb";
-const DIMMED_LINE = "#cbd2da";
-
 function PolygonsLayer({ spatialUnit, countries, basins, selectedCountries, selectedBasins }) {
     const ref = useRef(null);
+    const { theme, themeId } = useTheme();
     const isBasin = spatialUnit === "basins";
     const data = isBasin ? basins : countries;
     const labelKey = isBasin ? "basin" : "country";
-    const colorMap = isBasin ? BASIN_COLORS : COUNTRY_COLORS;
+    const colorMap = isBasin ? theme.data.basin : theme.data.country;
     const selected = isBasin ? selectedBasins : selectedCountries;
     const selKey = selected.join("|");
 
-    // Selected regions keep their fill and gain a bold PlayStation-blue
-    // outline; everything else fades to light grey so the selection reads as
-    // the focus. With no selection, all regions show their resting style.
+    // Selected regions keep their fill and gain a bold accent outline;
+    // everything else fades to the theme's dimmed greys so the selection
+    // reads as the focus. With no selection, all regions show their resting
+    // style.
     const styleFn = useCallback(
         (f) => {
             const name = f.properties[labelKey];
-            const baseFill = colorMap[name] || "#e8ecef";
-            const restingOpacity = isBasin ? 0.55 : 0.5;
+            const baseFill = colorMap[name] || theme.map.noDataFill;
+            const restingOpacity =
+                theme.map.restingFillOpacity[isBasin ? "basins" : "countries"];
             if (selected.length === 0) {
                 return {
                     fillColor: baseFill,
                     fillOpacity: restingOpacity,
-                    color: "#8fa0b4",
+                    color: theme.map.restingOutline,
                     weight: 0.6,
                 };
             }
             if (selected.includes(name)) {
                 return {
                     fillColor: baseFill,
-                    fillOpacity: 0.68,
-                    color: "#0070cc",
+                    fillOpacity: theme.map.selectedFillOpacity,
+                    color: theme.map.selectedOutline,
                     weight: 2.5,
                 };
             }
             return {
-                fillColor: DIMMED_FILL,
-                fillOpacity: 0.4,
-                color: DIMMED_LINE,
+                fillColor: theme.map.dimmedFill,
+                fillOpacity: theme.map.dimmedFillOpacity,
+                color: theme.map.dimmedLine,
                 weight: 0.5,
             };
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [isBasin, labelKey, selKey]
+        [isBasin, labelKey, selKey, themeId]
     );
 
     // Re-style the existing paths imperatively (react-leaflet does not re-run
@@ -205,15 +199,15 @@ function BasemapToggle({ basemap, onChange }) {
             className="leaflet-bottom leaflet-right"
             style={{ pointerEvents: "auto", marginBottom: 28, marginRight: 12 }}
         >
-            <div className="leaflet-control bg-white/95 backdrop-blur rounded-pill p-1 inline-flex shadow-ps-2">
+            <div className="leaflet-control glass-panel rounded-pill p-1 inline-flex shadow-ps-2">
                 {Object.entries(BASEMAPS).map(([key, cfg]) => (
                     <button
                         key={key}
                         onClick={() => onChange(key)}
                         className={`px-3 py-1 rounded-pill text-[12px] font-medium transition ${
                             basemap === key
-                                ? "bg-ps-blue text-white"
-                                : "text-ps-charcoal hover:bg-[#e2e8f0]"
+                                ? "bg-ps-blue text-on-accent"
+                                : "text-ps-charcoal hover:bg-panel-soft-2"
                         }`}
                         title={`Switch to ${cfg.label} basemap`}
                     >
@@ -239,6 +233,7 @@ export default function MapView({
     onScaleChange,
     summaryVisible,
 }) {
+    const { theme, themeId } = useTheme();
     const basemapCfg = BASEMAPS[basemap] || BASEMAPS.light;
     const scaleInfo = useMemo(
         () => computeScale(stations.filter((s) => s.is_critical), selectedAttribute),
@@ -289,11 +284,14 @@ export default function MapView({
                         selectedCountries={selectedCountries}
                         selectedBasins={selectedBasins}
                     />
+                    {/* Keyed by theme — react-leaflet does not re-apply a
+                        changed `style` prop, so remount on switch (cheap:
+                        one outline). */}
                     <GeoJSON
-                        key="research"
+                        key={`research-${themeId}`}
                         data={boundaries.research}
                         style={{
-                            color: "#0070cc",
+                            color: theme.map.researchOutline,
                             weight: 2,
                             fill: false,
                             opacity: 0.9,
@@ -312,7 +310,7 @@ export default function MapView({
 
             {/* Non-critical: canvas circle, filled with use color so type is legible */}
             {nonCritical.map((s) => {
-                const color = USE_COLORS[s.main_use] || USE_COLOR_FALLBACK;
+                const color = theme.data.use[s.main_use] || theme.data.useFallback;
                 const isSelected = selectedStation?.SEAWEA_ID === s.SEAWEA_ID;
                 return (
                     <CircleMarker
@@ -320,7 +318,7 @@ export default function MapView({
                         center={[s.latitude, s.longitude]}
                         radius={isSelected ? 8 : 5}
                         pathOptions={{
-                            color: isSelected ? "#0070cc" : "#ffffff",
+                            color: isSelected ? theme.map.selectedOutline : "#ffffff",
                             weight: isSelected ? 2.5 : 1.2,
                             opacity: 1,
                             fillColor: color,
@@ -337,7 +335,7 @@ export default function MapView({
             {critical.map((s) => {
                 const size = Math.round(scale(s[selectedAttribute]));
                 const isSelected = selectedStation?.SEAWEA_ID === s.SEAWEA_ID;
-                const icon = buildCriticalIcon(s, size, isSelected);
+                const icon = buildCriticalIcon(s, size, isSelected, theme);
                 return (
                     <Marker
                         key={`c-${s.SEAWEA_ID}`}

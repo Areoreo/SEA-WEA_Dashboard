@@ -8,6 +8,7 @@ import {
     classifyStation,
 } from "../../utils/constants";
 import { assignFeature, featureCentroid } from "../../utils/geoUtils";
+import { useTheme } from "../Theme/ThemeProvider";
 
 // --- Plot geometry (px) -----------------------------------------------------
 // The bars are drawn as an inline SVG with exact polygon faces (front / top /
@@ -60,7 +61,7 @@ function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function barSvg(value, maxValue, color, x) {
+function barSvg(value, maxValue, color, x, label) {
     const pct = maxValue > 0 ? value / maxValue : 0;
     const h = value > 0 ? Math.max(3, Math.round(MAX_H * pct)) : 0;
     const yTop = Y_BASE - h;
@@ -68,7 +69,7 @@ function barSvg(value, maxValue, color, x) {
     const front = color;
     const top = shade(color, 20);
     const side = shade(color, -24);
-    const stroke = "rgba(0,0,0,0.10)";
+    const stroke = label.faceStroke;
 
     const faces =
         h > 0
@@ -80,30 +81,38 @@ function barSvg(value, maxValue, color, x) {
 
     const numX = x + BAR_W / 2 + DEPTH / 2;
     const numY = (h > 0 ? yTop - DEPTH : Y_BASE - DEPTH) - 5;
-    const num = `<text x="${numX}" y="${numY}" text-anchor="middle" font-size="10" font-weight="700" fill="#1f1f1f" stroke="#ffffff" stroke-width="2.6" paint-order="stroke" style="paint-order:stroke">${esc(
+    const num = `<text x="${numX}" y="${numY}" text-anchor="middle" font-size="10" font-weight="700" fill="${label.ink}" stroke="${label.halo}" stroke-width="2.6" paint-order="stroke" style="paint-order:stroke">${esc(
         compact(value)
     )}</text>`;
 
     return faces + num;
 }
 
-function plotSvg(name, bars, maxValue) {
+function plotSvg(name, bars, maxValue, theme) {
+    const label = theme.summaryLabel;
     const barsSvg = SUMMARY_CLASSES.map((cls, i) => {
         const x = MARGIN_X + i * (BAR_W + BAR_GAP);
-        return barSvg(bars[cls.key] ?? 0, maxValue, cls.color, x);
+        return barSvg(
+            bars[cls.key] ?? 0,
+            maxValue,
+            theme.data.summary[cls.key],
+            x,
+            label
+        );
     }).join("");
 
     const labelY = Y_BASE + LABEL_GAP;
-    const label = `
-        <rect x="2" y="${labelY}" width="${SVG_W - 4}" height="${LABEL_H}" rx="6" fill="rgba(255,255,255,0.95)"/>
-        <text x="${SVG_W / 2}" y="${labelY + LABEL_H / 2 + 4}" text-anchor="middle" font-size="12" font-weight="600" fill="#1f1f1f" style="letter-spacing:-0.1px">${esc(
+    const labelSvg = `
+        <rect x="2" y="${labelY}" width="${SVG_W - 4}" height="${LABEL_H}" rx="6" fill="${label.pillBg}"/>
+        <text x="${SVG_W / 2}" y="${labelY + LABEL_H / 2 + 4}" text-anchor="middle" font-size="12" font-weight="600" fill="${label.ink}" style="letter-spacing:-0.1px">${esc(
             name
         )}</text>`;
 
-    return `<svg class="ps-sumplot" width="${SVG_W}" height="${SVG_H}" viewBox="0 0 ${SVG_W} ${SVG_H}" style="overflow:visible">${barsSvg}${label}</svg>`;
+    return `<svg class="ps-sumplot" width="${SVG_W}" height="${SVG_H}" viewBox="0 0 ${SVG_W} ${SVG_H}" style="overflow:visible">${barsSvg}${labelSvg}</svg>`;
 }
 
 export default function SummaryLayer({ features, labelKey, stations, selectedAttribute }) {
+    const { theme } = useTheme();
     const attrMeta = useMemo(
         () => NUMERIC_ATTRIBUTES.find((a) => a.key === selectedAttribute),
         [selectedAttribute]
@@ -165,7 +174,7 @@ export default function SummaryLayer({ features, labelKey, stations, selectedAtt
                 }
                 const icon = L.divIcon({
                     className: "ps-sumplot-wrapper",
-                    html: plotSvg(d.name, d.bars, maxValue),
+                    html: plotSvg(d.name, d.bars, maxValue, theme),
                     iconSize: [SVG_W, SVG_H],
                     iconAnchor: [SVG_W / 2, SVG_H],
                 });

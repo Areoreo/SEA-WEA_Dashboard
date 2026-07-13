@@ -1,11 +1,12 @@
 import React from "react";
-import { USE_COLORS, USE_COLOR_FALLBACK, USE_LABEL, formatNumber } from "../../utils/constants";
+import { USE_LABEL, formatNumber } from "../../utils/constants";
 import UseIcon from "../icons/UseIcon";
+import { useTheme } from "../Theme/ThemeProvider";
 
 function Row({ label, value }) {
     if (value == null || value === "") return null;
     return (
-        <div className="flex items-start justify-between gap-4 py-2 border-b border-[#f0f2f5] last:border-0">
+        <div className="flex items-start justify-between gap-4 py-2 border-b border-line-soft last:border-0">
             <span className="text-[12px] uppercase tracking-[0.08em] text-ps-bodyGray font-medium">
                 {label}
             </span>
@@ -17,31 +18,17 @@ function Row({ label, value }) {
 }
 
 export default function StationPanel({ station, onClose, onDynamicInfo, hasDynamic }) {
+    const { theme } = useTheme();
     if (!station) return null;
-    const color = USE_COLORS[station.main_use] || USE_COLOR_FALLBACK;
+    const color = theme.data.use[station.main_use] || theme.data.useFallback;
     const title =
         station.reservoir_name || station.station_name || station.dam_name || "Station";
     return (
-        <div
-            className="absolute top-4 right-4 w-[360px] max-h-[calc(100%-2rem)] overflow-y-auto bg-white rounded-ps-lg z-[1100] animate-[slideIn_220ms_ease]"
-            style={{ boxShadow: "0 5px 28px 0 rgba(0,0,0,0.2)" }}
-        >
-            <style jsx>{`
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(-6px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-            `}</style>
+        <div className="absolute top-4 right-4 w-[360px] max-h-[calc(100%-2rem)] overflow-y-auto bg-panel rounded-ps-lg z-[1100] shadow-pop animate-[panel-in_var(--dur-2)_ease]">
             <div
                 className="relative p-5 pr-14 text-white rounded-t-ps-lg"
                 style={{
-                    background: `linear-gradient(135deg, ${color} 0%, #0070cc 140%)`,
+                    background: `linear-gradient(135deg, ${color} 0%, ${theme.stationHeaderTo} 140%)`,
                 }}
             >
                 <button
@@ -63,7 +50,7 @@ export default function StationPanel({ station, onClose, onDynamicInfo, hasDynam
                     {station.is_critical ? "Critical Station" : "Non-critical Station"}
                 </div>
                 <h2
-                    className="mt-1 text-[22px] leading-[1.2] font-light"
+                    className="mt-1 text-[22px] leading-[1.2] font-light font-display"
                     style={{ letterSpacing: "-0.1px" }}
                 >
                     {title}

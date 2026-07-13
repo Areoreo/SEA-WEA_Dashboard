@@ -2,17 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-    --ps-blue: #0070cc;
-    --ps-cyan: #1eaedb;
-    --ps-black: #000000;
-    --ps-white: #ffffff;
-    --ps-ice: #f5f7fa;
-    --ps-charcoal: #1f1f1f;
-    --ps-body-gray: #6b6b6b;
-    --ps-orange: #d53b00;
-    --ps-red: #c81b3a;
-}
+// Theme tokens (--page, --ink, --accent, …) are emitted per theme by
+// utils/themes.js → buildThemeCss(), injected as an inline <style> in
+// pages/_document.js so they exist at first paint. Everything below is
+// written against those tokens; :root[data-theme="…"] flips them at runtime.
 
 html,
 body,
@@ -20,43 +13,56 @@ body,
     height: 100%;
     margin: 0;
     padding: 0;
-    background: var(--ps-ice);
-    color: var(--ps-charcoal);
-    font-family: "SST", "Playstation SST", -apple-system, BlinkMacSystemFont,
-        "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-body);
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+// The page wash (Monsoon gradient) paints once on the app shell; panels above
+// it use --panel / --panel-glass.
+#__next {
+    background-image: var(--page-wash);
+    background-attachment: fixed;
+}
+
+html {
+    // Firefox counterpart of the webkit scrollbar styling below.
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
 }
 
 * {
     box-sizing: border-box;
 }
 
-// PlayStation hover signature for buttons marked .ps-btn
+// Primary button — classic keeps the PlayStation hover signature (cyan fill,
+// white border, blue ring, lift-scale); other themes retune it via tokens and
+// the theme-scoped overrides at the bottom of this file.
 .ps-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: var(--ps-blue);
-    color: var(--ps-white);
+    background: var(--accent);
+    color: var(--on-accent);
     font-weight: 500;
     font-size: 16px;
     letter-spacing: 0.4px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 10px 22px;
     border: 2px solid transparent;
     box-shadow: 0 0 0 0 transparent;
-    transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease,
-        border-color 180ms ease;
+    transition: background var(--dur-1) ease, transform var(--dur-1) ease,
+        box-shadow var(--dur-1) ease, border-color var(--dur-1) ease;
     cursor: pointer;
 
     &:hover {
-        background: var(--ps-cyan);
-        border-color: var(--ps-white);
-        box-shadow: 0 0 0 2px var(--ps-blue);
-        transform: scale(1.06);
+        background: var(--accent-hover);
+        border-color: var(--on-accent);
+        box-shadow: 0 0 0 2px var(--accent);
+        transform: scale(var(--hover-scale));
     }
 
     &:active {
@@ -68,42 +74,50 @@ body,
         cursor: not-allowed;
         transform: none;
         box-shadow: none;
-        background: var(--ps-blue);
+        background: var(--accent);
         border-color: transparent;
     }
 }
 
 .ps-btn-ghost {
     background: transparent;
-    color: var(--ps-charcoal);
-    border: 1px solid #dedede;
+    color: var(--ink);
+    border: 1px solid var(--line);
 }
 
 .ps-btn-ghost:hover {
-    background: var(--ps-cyan);
-    color: var(--ps-white);
-    border-color: var(--ps-white);
-    box-shadow: 0 0 0 2px var(--ps-blue);
-    transform: scale(1.06);
+    background: var(--accent-hover);
+    color: var(--on-accent);
+    border-color: var(--on-accent);
+    box-shadow: 0 0 0 2px var(--accent);
+    transform: scale(var(--hover-scale));
 }
 
 .ps-btn-orange {
-    background: var(--ps-orange);
+    background: var(--cta);
     font-weight: 700;
     letter-spacing: 0.45px;
 }
 
 .ps-btn-orange:hover {
-    background: var(--ps-cyan);
+    background: var(--accent-hover);
 }
 
 .ps-btn-orange:active {
-    background: #aa2f00;
+    background: var(--cta-active);
 }
 
 .ps-btn-sm {
     font-size: 14px;
     padding: 6px 14px;
+}
+
+// Frosted overlay panel — stats strip, legend, basemap toggle. The blur and
+// translucency are theme-driven (classic ≈ the old bg-white/95 backdrop-blur).
+.glass-panel {
+    background: var(--panel-glass);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
 }
 
 // Custom scrollbar
@@ -112,25 +126,31 @@ body,
     height: 8px;
 }
 ::-webkit-scrollbar-track {
-    background: var(--ps-ice);
+    background: var(--scroll-track);
 }
 ::-webkit-scrollbar-thumb {
-    background: #cccccc;
+    background: var(--scroll-thumb);
     border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--ps-blue);
+    background: var(--scroll-thumb-hover);
 }
 
 // Leaflet tweaks
 .leaflet-container {
-    background: #0b0d10;
+    background: var(--page);
     font-family: inherit;
 }
 
 .leaflet-popup-content-wrapper {
-    border-radius: 12px !important;
-    box-shadow: 0 5px 9px 0 rgba(0, 0, 0, 0.16) !important;
+    background: var(--panel) !important;
+    color: var(--ink) !important;
+    border-radius: var(--leaflet-popup-radius) !important;
+    box-shadow: var(--shadow-3) !important;
+}
+
+.leaflet-popup-tip {
+    background: var(--panel) !important;
 }
 
 .leaflet-popup-content {
@@ -139,8 +159,8 @@ body,
 }
 
 .leaflet-tooltip.ps-tooltip {
-    background: rgba(0, 0, 0, 0.85);
-    color: #fff;
+    background: var(--tip-bg);
+    color: var(--tip-ink);
     border: none;
     border-radius: 6px;
     padding: 4px 8px;
@@ -155,13 +175,13 @@ body,
 // Station marker pulse for critical
 @keyframes ps-pulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(30, 174, 219, 0.55);
+        box-shadow: 0 0 0 0 rgb(var(--pulse-rgb) / 0.55);
     }
     70% {
-        box-shadow: 0 0 0 10px rgba(30, 174, 219, 0);
+        box-shadow: 0 0 0 var(--pulse-spread) rgb(var(--pulse-rgb) / 0);
     }
     100% {
-        box-shadow: 0 0 0 0 rgba(30, 174, 219, 0);
+        box-shadow: 0 0 0 0 rgb(var(--pulse-rgb) / 0);
     }
 }
 
@@ -173,72 +193,35 @@ body,
     color: #fff;
     border-radius: 50%;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-    transition: transform 160ms ease;
+    transition: transform var(--dur-1) ease;
     border: 2px solid #fff;
 }
 
 .ps-marker.critical {
-    animation: ps-pulse 2.1s infinite;
+    animation: ps-pulse var(--pulse-period) infinite;
 }
 
 // Pulsing ring used in the legend swatch to mark the Critical station type —
 // the ring is the one signal that separates Critical from Non-critical.
 .ps-legend-pulse {
-    animation: ps-pulse 2.1s infinite;
+    animation: ps-pulse var(--pulse-period) infinite;
 }
 
 .ps-marker:hover {
-    transform: scale(1.2);
+    transform: scale(var(--hover-scale-marker));
     z-index: 500;
 }
 
-// 3D bar for summary
-.ps-bar-3d {
-    position: relative;
-    transform-style: preserve-3d;
-    perspective: 600px;
-}
-
-.ps-bar-3d .front {
-    background: linear-gradient(180deg, #1eaedb 0%, #0070cc 100%);
-    box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.2);
-}
-
-.ps-bar-3d .top {
-    position: absolute;
-    top: -10px;
-    left: 0;
-    right: 0;
-    height: 10px;
-    background: linear-gradient(180deg, #53b1ff 0%, #1eaedb 100%);
-    transform: skewX(-45deg);
-    transform-origin: bottom left;
-    border-top-left-radius: 2px;
-    border-top-right-radius: 2px;
-}
-
-.ps-bar-3d .side {
-    position: absolute;
-    top: 0;
-    right: -10px;
-    bottom: 0;
-    width: 10px;
-    background: linear-gradient(90deg, #0068bd 0%, #004b8a 100%);
-    transform: skewY(-45deg);
-    transform-origin: bottom left;
-}
-
-@keyframes ps-grow {
+// Floating panel entrance (StationPanel; was a styled-jsx `slideIn`).
+@keyframes panel-in {
     from {
-        height: 0;
+        opacity: 0;
+        transform: translateY(-6px);
     }
     to {
-        height: var(--grow-target);
+        opacity: 1;
+        transform: translateY(0);
     }
-}
-
-.ps-bar-anim {
-    animation: ps-grow 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 // Per-basin summary bar plot rendered as a Leaflet DivIcon.
@@ -251,7 +234,7 @@ body,
 .ps-sumplot {
     position: relative;
     filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.18));
-    animation: ps-sumplot-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: ps-sumplot-in var(--dur-3) var(--ease-emphasis) both;
 }
 
 @keyframes ps-sumplot-in {
@@ -268,3 +251,78 @@ body,
 /* Summary plot faces, numbers, and label are drawn inside the SVG itself
    (see SummaryLayer.js) — only the wrapper, drop-shadow, and entrance
    animation live here. */
+
+// ---- Basemap-dependent chrome -------------------------------------------
+// Attribution readability follows the *tiles*, not the theme — a user can
+// put dark tiles under a light theme and vice versa (data-basemap is set on
+// the map wrapper in MainDashboard).
+[data-basemap="dark"] .leaflet-control-attribution {
+    background: rgba(13, 20, 32, 0.7) !important;
+    color: #8fa3bf !important;
+
+    a {
+        color: #b8c8de !important;
+    }
+}
+
+// ---- Theme personalities --------------------------------------------------
+// Token values do most of the theming; the rules below are the few behaviors
+// a custom property cannot express (hover signatures, entrances, glows).
+
+// Hydrology Atlas — quiet, editorial. No lift, no ring, no hue-jump: buttons
+// simply deepen. (hover-scale token is already 1.)
+:root[data-theme="hydrology"] {
+    .ps-btn:hover,
+    .ps-btn-ghost:hover {
+        border-color: transparent;
+        box-shadow: none;
+    }
+}
+
+// Mission Control — the console glows. Buttons and focus bloom cyan; the
+// floating overlays slide in when they (re)mount.
+:root[data-theme="mission"] {
+    .ps-btn:hover,
+    .ps-btn-ghost:hover {
+        border-color: transparent;
+        box-shadow: 0 0 0 1px rgb(var(--accent-rgb) / 0.6),
+            0 0 18px rgb(var(--accent-rgb) / 0.45);
+    }
+
+    button:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--accent), 0 0 14px rgb(var(--accent-rgb) / 0.45);
+    }
+
+    .glass-panel {
+        animation: panel-in var(--dur-2) var(--ease-1) both;
+        border: 1px solid var(--line);
+    }
+}
+
+// Monsoon Glass — springy, soft. Chips and toggles lift with a gentle
+// overshoot; frosted overlays rise in; buttons trade the ring for a shadow.
+:root[data-theme="monsoon"] {
+    .ps-btn:hover,
+    .ps-btn-ghost:hover {
+        border-color: transparent;
+        box-shadow: var(--shadow-2);
+    }
+
+    .chip {
+        transition: transform var(--dur-1) var(--ease-emphasis),
+            box-shadow var(--dur-1) var(--ease-emphasis),
+            border-color var(--dur-1) ease, background var(--dur-1) ease,
+            color var(--dur-1) ease;
+    }
+
+    .chip:hover {
+        transform: scale(1.04);
+        box-shadow: var(--shadow-1);
+    }
+
+    .glass-panel {
+        animation: panel-in var(--dur-2) var(--ease-emphasis) both;
+        border: 1px solid rgba(255, 255, 255, 0.65);
+    }
+}

@@ -13,43 +13,17 @@ export const USE_LABEL = {
     SEAWEA_UNKNOWN: "Unknown",
 };
 
-// Accessible, distinct color per use — all sit within a cool/neutral gamut to
-// keep the PlayStation voice. "Unknown" is intentionally muted.
-export const USE_COLORS = {
-    Hydropower: "#5cc5ef",
-    Irrigation: "#7bc36a",
-    "Water supply": "#0a4f9e",
-    "Flood control": "#ffb454",
-    "Multiple purpose": "#b388ff",
-    SEAWEA_UNKNOWN: "#9aa5b1",
-};
-
-export const USE_COLOR_FALLBACK = "#9aa5b1";
+// Use / country / basin / summary COLORS live in utils/themes.js (per-theme
+// palettes, THEMES[id].data.*) — components read them via useTheme(). Only
+// theme-independent keys, labels, and orderings stay here.
 
 export const COUNTRIES = ["Cambodia", "Laos", "Myanmar", "Thailand", "Vietnam"];
-
-export const COUNTRY_COLORS = {
-    Cambodia: "#b9e3ff",
-    Laos: "#ffe3b8",
-    Myanmar: "#e5d6ff",
-    Thailand: "#c8f0d2",
-    Vietnam: "#ffd1d1",
-};
 
 export const BASINS = ["ChaoPhraya", "Irrawaddy", "Mekong", "Red", "Salween", "Other"];
 
 // UI label overrides — the raw `basin` property value is kept in the data.
 export const BASIN_LABEL = {
     ChaoPhraya: "Chao Phraya",
-};
-
-export const BASIN_COLORS = {
-    ChaoPhraya: "#cfeaff",
-    Irrawaddy: "#ffdfc0",
-    Mekong: "#c8e8d4",
-    Red: "#ffc9d1",
-    Salween: "#e0d4ff",
-    Other: "#e8ecef",
 };
 
 export const STATUS_OPERATIONAL = "Operational";
@@ -81,10 +55,11 @@ export const NUMERIC_ATTRIBUTES = [
     { key: "water_head_m", label: "Water Head (m)", summary: "count" },
 ];
 
+// Colors come from THEMES[id].data.summary (utils/themes.js), keyed by `key`.
 export const SUMMARY_CLASSES = [
-    { key: "critical", label: "Critical", color: "#0070cc" },
-    { key: "nonCritical", label: "Non-critical", color: "#8aa0b4" },
-    { key: "unknown", label: "Unknown", color: "#c9ced4" },
+    { key: "critical", label: "Critical" },
+    { key: "nonCritical", label: "Non-critical" },
+    { key: "unknown", label: "Unknown" },
 ];
 
 // Optional hard-coded anchor for each Summary bar plot, keyed by the region's

@@ -7,11 +7,12 @@ import Legend from "../Map/Legend";
 import { loadStations, loadAllBoundaries, loadDynamicIndex } from "../../utils/dataLoader";
 import { isOperational, isFutureStatus, DEFAULT_BASEMAP } from "../../utils/constants";
 import { assignFeature } from "../../utils/geoUtils";
+import { useTheme } from "../Theme/ThemeProvider";
 
 const MapView = dynamic(() => import("../Map/MapView"), {
     ssr: false,
     loading: () => (
-        <div className="h-full w-full flex items-center justify-center bg-ps-ice text-ps-blue">
+        <div className="h-full w-full flex items-center justify-center bg-transparent text-ps-blue">
             <div className="text-center">
                 <div className="inline-block h-10 w-10 rounded-full border-2 border-ps-blue/30 border-t-ps-blue animate-spin" />
                 <p className="mt-4 text-sm font-light tracking-wide">Loading map…</p>
@@ -45,6 +46,7 @@ function readMainHeight(el, fallback = 0) {
 }
 
 export default function MainDashboard() {
+    const { theme, themeId } = useTheme();
     const [options, setOptions] = useState(DEFAULT_OPTIONS);
     const [stations, setStations] = useState([]);
     const [boundaries, setBoundaries] = useState(null);
@@ -134,6 +136,13 @@ export default function MainDashboard() {
             return Math.max(minH, Math.min(base, maxH));
         });
     }, [mainHeight, dynamicStation]);
+
+    // Each theme names its own default basemap (Mission Control → dark
+    // tiles); the manual BasemapToggle still overrides within a theme.
+    useEffect(() => {
+        setBasemap(theme.map.defaultBasemap);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [themeId]);
 
     const update = (k, v) => setOptions((prev) => ({ ...prev, [k]: v }));
 
@@ -268,11 +277,11 @@ export default function MainDashboard() {
 
     if (loading) {
         return (
-            <div className="h-screen w-screen flex items-center justify-center bg-ps-ice">
+            <div className="h-screen w-screen flex items-center justify-center bg-transparent">
                 <div className="text-center">
                     <div className="inline-block h-12 w-12 rounded-full border-2 border-ps-blue/30 border-t-ps-blue animate-spin" />
                     <p
-                        className="mt-5 text-[20px] font-light text-ps-charcoal"
+                        className="mt-5 text-[20px] font-light text-ps-charcoal font-display"
                         style={{ letterSpacing: "-0.1px" }}
                     >
                         Loading SEA-WEA Atlas
@@ -287,13 +296,13 @@ export default function MainDashboard() {
 
     if (error) {
         return (
-            <div className="h-screen w-screen flex items-center justify-center bg-ps-ice p-6">
-                <div className="max-w-xl bg-white rounded-ps-lg p-8 shadow-ps-3">
+            <div className="h-screen w-screen flex items-center justify-center bg-transparent p-6">
+                <div className="max-w-xl bg-panel rounded-ps-lg p-8 shadow-ps-3">
                     <div className="text-[11px] uppercase tracking-[0.12em] text-ps-red font-semibold">
                         Error
                     </div>
                     <h2
-                        className="mt-1 text-[24px] font-light text-ps-charcoal"
+                        className="mt-1 text-[24px] font-light text-ps-charcoal font-display"
                         style={{ letterSpacing: "-0.1px" }}
                     >
                         Could not load data
@@ -313,7 +322,7 @@ export default function MainDashboard() {
         : effectiveMain;
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-ps-ice">
+        <div className="flex h-screen w-screen overflow-hidden bg-transparent">
             <Sidebar
                 options={options}
                 update={update}
@@ -324,6 +333,7 @@ export default function MainDashboard() {
             <main ref={mainRef} className="flex-1 flex flex-col relative min-w-0 min-h-0">
                 <div
                     className="relative flex-shrink-0"
+                    data-basemap={basemap}
                     style={{
                         height: dynamicStation ? mapHeight : "100%",
                         transition: isDragging ? "none" : "height 180ms ease",
@@ -345,10 +355,7 @@ export default function MainDashboard() {
                     />
 
                     {/* Floating stats strip */}
-                    <div
-                        className="absolute top-4 left-4 bg-white/95 backdrop-blur rounded-ps-md px-4 py-3 z-[400]"
-                        style={{ boxShadow: "0 5px 9px 0 rgba(0,0,0,0.12)" }}
-                    >
+                    <div className="absolute top-4 left-4 glass-panel rounded-ps-md px-4 py-3 z-[400] shadow-overlay">
                         <div className="text-[10px] uppercase tracking-[0.1em] text-ps-bodyGray font-semibold">
                             {options.overview === "current"
                                 ? "Operational"
@@ -356,7 +363,7 @@ export default function MainDashboard() {
                         </div>
                         <div className="mt-0.5 flex items-baseline gap-2">
                             <div
-                                className="text-[26px] font-light text-ps-charcoal leading-none"
+                                className="text-[26px] font-light text-ps-charcoal leading-none font-data tabular-nums"
                                 style={{ letterSpacing: "-0.1px" }}
                             >
                                 {filteredStations.length.toLocaleString()}

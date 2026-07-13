@@ -1,7 +1,6 @@
 import React from "react";
 import {
     MAIN_USES,
-    USE_COLORS,
     USE_LABEL,
     COUNTRIES,
     BASINS,
@@ -9,6 +8,8 @@ import {
     NUMERIC_ATTRIBUTES,
 } from "../../utils/constants";
 import UseIcon from "../icons/UseIcon";
+import ThemeSwitcher from "../Theme/ThemeSwitcher";
+import { useTheme } from "../Theme/ThemeProvider";
 
 function SectionTitle({ children }) {
     return (
@@ -25,10 +26,10 @@ function Toggle({ active, onClick, children }) {
     return (
         <button
             onClick={onClick}
-            className={`flex-1 text-[14px] font-medium rounded-pill px-4 py-2 transition-all duration-200 border-2 ${
+            className={`chip flex-1 text-[14px] font-medium rounded-pill px-4 py-2 transition-all duration-200 border-2 ${
                 active
-                    ? "bg-ps-blue text-white border-transparent shadow-ps-2"
-                    : "bg-white text-ps-charcoal border-[#e4e7eb] hover:border-ps-blue"
+                    ? "bg-ps-blue text-on-accent border-transparent shadow-ps-2"
+                    : "bg-panel text-ps-charcoal border-line hover:border-ps-blue"
             }`}
         >
             {children}
@@ -40,17 +41,19 @@ function Chip({ active, onClick, color, children, icon }) {
     return (
         <button
             onClick={onClick}
-            className={`group inline-flex items-center gap-2 rounded-pill px-3 py-[6px] text-[13px] font-medium border transition-all duration-150 ${
+            className={`chip group inline-flex items-center gap-2 rounded-pill px-3 py-[6px] text-[13px] font-medium border transition-all duration-150 ${
                 active
-                    ? "text-white border-transparent shadow-ps-1"
-                    : "bg-white text-ps-charcoal border-[#e4e7eb] hover:border-ps-blue"
+                    ? "text-on-accent border-transparent shadow-ps-1"
+                    : "bg-panel text-ps-charcoal border-line hover:border-ps-blue"
             }`}
-            style={active ? { backgroundColor: color || "#0070cc" } : {}}
+            style={active ? { backgroundColor: color || "var(--accent)" } : {}}
         >
             {icon && (
                 <span
                     className="inline-flex items-center justify-center"
-                    style={{ color: active ? "#fff" : color || "#0070cc" }}
+                    style={{
+                        color: active ? "var(--on-accent)" : color || "var(--accent)",
+                    }}
                 >
                     {icon}
                 </span>
@@ -61,6 +64,7 @@ function Chip({ active, onClick, color, children, icon }) {
 }
 
 export default function Sidebar({ options, update, summaryOpen, onOpenSummary }) {
+    const { theme } = useTheme();
     const toggleUse = (use) => {
         const next = options.selectedUses.includes(use)
             ? options.selectedUses.filter((u) => u !== use)
@@ -82,16 +86,13 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
     const byBasin = options.spatialUnit === "basins";
 
     return (
-        <aside
-            className="h-full w-[320px] shrink-0 bg-white border-r border-[#eceff3] overflow-y-auto"
-            style={{ boxShadow: "0 5px 9px 0 rgba(0,0,0,0.06)" }}
-        >
+        <aside className="h-full w-[320px] shrink-0 bg-panel border-r border-line-soft overflow-y-auto shadow-ps-1">
             <div className="p-6">
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.15em] text-ps-blue">
                     SEA-WEA
                 </div>
                 <h1
-                    className="text-[26px] leading-[1.2] font-light text-ps-charcoal"
+                    className="text-[26px] leading-[1.2] font-light text-ps-charcoal font-display"
                     style={{ letterSpacing: "-0.1px" }}
                 >
                     Reservoir & Hydropower Atlas
@@ -161,10 +162,7 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                     </label>
                     <label className="flex items-center justify-between text-[14px] text-ps-charcoal">
                         <span className="flex items-center gap-2">
-                            <span
-                                className="h-2.5 w-2.5 rounded-full inline-block"
-                                style={{ background: "#6b6b6b" }}
-                            />
+                            <span className="h-2.5 w-2.5 rounded-full inline-block bg-ink-2" />
                             Non-critical
                         </span>
                         <input
@@ -185,7 +183,7 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                                     key={b}
                                     active={options.selectedBasins.includes(b)}
                                     onClick={() => toggleBasin(b)}
-                                    color="#0070cc"
+                                    color={theme.tokens.accent}
                                 >
                                     {BASIN_LABEL[b] || b}
                                 </Chip>
@@ -206,7 +204,7 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                                     key={c}
                                     active={options.selectedCountries.includes(c)}
                                     onClick={() => toggleCountry(c)}
-                                    color="#0070cc"
+                                    color={theme.tokens.accent}
                                 >
                                     {c}
                                 </Chip>
@@ -227,7 +225,7 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                             key={u}
                             active={options.selectedUses.includes(u)}
                             onClick={() => toggleUse(u)}
-                            color={USE_COLORS[u]}
+                            color={theme.data.use[u]}
                             icon={<UseIcon use={u} size={14} />}
                         >
                             {USE_LABEL[u] || u}
@@ -239,7 +237,7 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                 <select
                     value={options.selectedAttribute}
                     onChange={(e) => update("selectedAttribute", e.target.value)}
-                    className="w-full bg-white border border-[#cccccc] rounded-ps-sm py-2 px-3 text-[14px] text-ps-charcoal focus:outline-none focus:ring-2 focus:ring-ps-blue"
+                    className="w-full bg-panel border border-line-strong rounded-ps-sm py-2 px-3 text-[14px] text-ps-charcoal focus:outline-none focus:ring-2 focus:ring-ps-blue"
                 >
                     {NUMERIC_ATTRIBUTES.map((a) => (
                         <option key={a.key} value={a.key}>
@@ -271,6 +269,9 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                         power; counts stations for dam height / length / water head.
                     </p>
                 </div>
+
+                <SectionTitle>Appearance</SectionTitle>
+                <ThemeSwitcher />
             </div>
         </aside>
     );

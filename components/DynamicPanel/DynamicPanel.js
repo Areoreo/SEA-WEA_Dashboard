@@ -11,15 +11,18 @@ import { line as d3Line, curveMonotoneX } from "d3-shape";
 import { extent, bisector } from "d3-array";
 import { loadDynamicSeries } from "../../utils/dataLoader";
 import { formatNumber } from "../../utils/constants";
+import { useTheme } from "../Theme/ThemeProvider";
 
 /* ------------------------------------------------------------------ */
 /* Config                                                              */
 /* ------------------------------------------------------------------ */
 
+// Series colors live in the theme (theme.chart.series[key]); they are merged
+// in at render so a theme switch recolors the charts.
 const METRICS = [
-    { key: "area_km2",            label: "Surface Area",    unit: "km²", color: "#0070cc" },
-    { key: "elevation_m",         label: "Water Elevation", unit: "m",   color: "#1883fd" },
-    { key: "changed_storage_mcm", label: "Storage Change",  unit: "MCM", color: "#d53b00" },
+    { key: "area_km2",            label: "Surface Area",    unit: "km²" },
+    { key: "elevation_m",         label: "Water Elevation", unit: "m"   },
+    { key: "changed_storage_mcm", label: "Storage Change",  unit: "MCM" },
 ];
 
 const CHART_HEIGHT = 200;
@@ -126,6 +129,8 @@ function useContainerWidth() {
 
 function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
     const [wrapRef, width] = useContainerWidth();
+    const { theme } = useTheme();
+    const chart = theme.chart;
 
     const stats = useMemo(() => summarize(series, metric.key), [series, metric.key]);
     const yExtent = useMemo(() => niceExtent(series, metric.key), [series, metric.key]);
@@ -201,15 +206,14 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
 
     return (
         <section
-            className="bg-white rounded-ps-md border border-ps-divider overflow-hidden"
-            style={{ boxShadow: "0 5px 9px 0 rgba(0,0,0,0.06)" }}
+            className="bg-panel rounded-ps-md border border-ps-divider overflow-hidden shadow-ps-1"
             aria-labelledby={`metric-${metric.key}`}
         >
             <header className="flex items-start justify-between gap-4 px-5 pt-4 pb-2">
                 <div className="min-w-0">
                     <h3
                         id={`metric-${metric.key}`}
-                        className="text-[22px] font-light text-ps-charcoal leading-tight"
+                        className="text-[22px] font-light text-ps-charcoal leading-tight font-display"
                         style={{ letterSpacing: "0.1px" }}
                     >
                         {metric.label}
@@ -235,18 +239,22 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
                         height={CHART_HEIGHT}
                         onMouseMove={handleMove}
                         onMouseLeave={onLeave}
-                        style={{ display: "block", cursor: "crosshair" }}
+                        style={{
+                            display: "block",
+                            cursor: "crosshair",
+                            fontFamily: "var(--font-data)",
+                        }}
                     >
                         <g transform={`translate(${CHART_MARGIN.left},${CHART_MARGIN.top})`}>
                             {/* Horizontal grid */}
                             {yTicks.map((t, i) => (
                                 <g key={i} transform={`translate(0,${yScale(t)})`}>
-                                    <line x2={plotW} stroke="#f3f3f3" strokeWidth={1} />
+                                    <line x2={plotW} stroke={chart.grid} strokeWidth={1} />
                                     <text
                                         x={-10}
                                         dy="0.32em"
                                         textAnchor="end"
-                                        fill="#6b6b6b"
+                                        fill={chart.tick}
                                         fontSize={11}
                                     >
                                         {formatNumber(t, 1)}
@@ -260,7 +268,7 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
                                 x2={plotW}
                                 y1={plotH}
                                 y2={plotH}
-                                stroke="#cccccc"
+                                stroke={chart.axis}
                                 strokeWidth={1}
                             />
 
@@ -270,11 +278,11 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
                                     key={i}
                                     transform={`translate(${xScale(t)},${plotH})`}
                                 >
-                                    <line y2={4} stroke="#cccccc" />
+                                    <line y2={4} stroke={chart.axis} />
                                     <text
                                         y={16}
                                         textAnchor="middle"
-                                        fill="#6b6b6b"
+                                        fill={chart.tick}
                                         fontSize={11}
                                     >
                                         {formatMonth(t)}
@@ -291,12 +299,25 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
                                         x2={plotW}
                                         y1={yScale(0)}
                                         y2={yScale(0)}
-                                        stroke="#cccccc"
+                                        stroke={chart.zeroLine}
                                         strokeDasharray="3 3"
                                     />
                                 )}
 
-                            {/* Line */}
+                            {/* Line — themes with lineGlow get a soft blurred
+                                under-stroke (double stroke, no SVG filter, so
+                                brush drags stay cheap) */}
+                            {chart.lineGlow && (
+                                <path
+                                    d={pathD}
+                                    fill="none"
+                                    stroke={metric.color}
+                                    strokeWidth={7}
+                                    strokeOpacity={0.28}
+                                    strokeLinejoin="round"
+                                    strokeLinecap="round"
+                                />
+                            )}
                             <path
                                 d={pathD}
                                 fill="none"
@@ -309,12 +330,23 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
                             {/* Crosshair */}
                             {hoverPoint && (
                                 <g pointerEvents="none">
+                                    {chart.lineGlow && (
+                                        <line
+                                            x1={hoverPoint.x}
+                                            x2={hoverPoint.x}
+                                            y1={0}
+                                            y2={plotH}
+                                            stroke={chart.crosshair}
+                                            strokeWidth={5}
+                                            strokeOpacity={0.25}
+                                        />
+                                    )}
                                     <line
                                         x1={hoverPoint.x}
                                         x2={hoverPoint.x}
                                         y1={0}
                                         y2={plotH}
-                                        stroke="#1eaedb"
+                                        stroke={chart.crosshair}
                                         strokeWidth={1}
                                     />
                                     {hoverPoint.y != null && (
@@ -323,7 +355,7 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
                                             cy={hoverPoint.y}
                                             r={4}
                                             fill={metric.color}
-                                            stroke="#ffffff"
+                                            stroke={chart.dotRing}
                                             strokeWidth={2}
                                         />
                                     )}
@@ -361,6 +393,8 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
 }
 
 function ChartTooltip({ width, x, y, metric, point }) {
+    const { theme } = useTheme();
+    const chart = theme.chart;
     const boxW = 170;
     const boxH = 54;
     // Flip to the other side near the right edge
@@ -374,14 +408,14 @@ function ChartTooltip({ width, x, y, metric, point }) {
                 height={boxH}
                 rx={12}
                 ry={12}
-                fill="#ffffff"
-                stroke="#f3f3f3"
+                fill={chart.tooltipBg}
+                stroke={chart.tooltipBorder}
                 style={{ filter: "drop-shadow(0 5px 9px rgba(0,0,0,0.16))" }}
             />
-            <text x={12} y={18} fontSize={11} fill="#6b6b6b" fontWeight={500}>
+            <text x={12} y={18} fontSize={11} fill={chart.tooltipInk2} fontWeight={500}>
                 {formatDay(point.d._t)}
             </text>
-            <text x={12} y={40} fontSize={15} fill="#1f1f1f" fontWeight={500}>
+            <text x={12} y={40} fontSize={15} fill={chart.tooltipInk} fontWeight={500}>
                 {point.v == null ? "—" : `${formatNumber(point.v, 2)} ${metric.unit}`}
             </text>
         </g>
@@ -402,7 +436,7 @@ function Stat({ label, value, unit, accent }) {
             <dd
                 className={`mt-0.5 text-[15px] ${
                     accent ? "text-ps-blue font-medium" : "text-ps-charcoal"
-                } tabular-nums whitespace-nowrap`}
+                } font-data tabular-nums whitespace-nowrap`}
             >
                 {display}
                 {accent && value != null && Number.isFinite(value) && (
@@ -421,6 +455,8 @@ function Stat({ label, value, unit, accent }) {
 
 function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
     const [wrapRef, width] = useContainerWidth();
+    const { theme } = useTheme();
+    const chart = theme.chart;
     const ready = width > 0 && series.length > 0;
 
     const plotW = Math.max(0, width - CHART_MARGIN.left - CHART_MARGIN.right);
@@ -500,7 +536,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
     };
 
     return (
-        <div className="bg-white rounded-ps-md border border-ps-divider px-0 pt-2 pb-1">
+        <div className="bg-panel rounded-ps-md border border-ps-divider px-0 pt-2 pb-1">
             <div className="flex items-center justify-between px-5 pb-1">
                 <div className="text-[10px] uppercase tracking-[0.1em] text-ps-bodyGray font-semibold">
                     Time Range
@@ -518,7 +554,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                     <svg
                         width={width}
                         height={BRUSH_HEIGHT}
-                        style={{ display: "block" }}
+                        style={{ display: "block", fontFamily: "var(--font-data)" }}
                         onMouseDown={handleBgClick}
                     >
                         <g transform={`translate(${CHART_MARGIN.left},4)`}>
@@ -527,13 +563,13 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 y={0}
                                 width={plotW}
                                 height={plotH}
-                                fill="#f5f7fa"
+                                fill={chart.brushTrack}
                                 rx={6}
                             />
                             <path
                                 d={sparkPath}
                                 fill="none"
-                                stroke="#cccccc"
+                                stroke={chart.brushSpark}
                                 strokeWidth={1}
                             />
                             {/* Selection */}
@@ -542,9 +578,9 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 y={0}
                                 width={Math.max(0, x1 - x0)}
                                 height={plotH}
-                                fill="#0070cc"
+                                fill={chart.brushAccent}
                                 fillOpacity={0.12}
-                                stroke="#0070cc"
+                                stroke={chart.brushAccent}
                                 strokeWidth={1}
                                 style={{ cursor: "grab" }}
                                 onMouseDown={startDrag("move")}
@@ -556,7 +592,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 width={8}
                                 height={plotH + 4}
                                 rx={2}
-                                fill="#0070cc"
+                                fill={chart.brushAccent}
                                 style={{ cursor: "ew-resize" }}
                                 onMouseDown={startDrag("left")}
                             />
@@ -567,7 +603,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 width={8}
                                 height={plotH + 4}
                                 rx={2}
-                                fill="#0070cc"
+                                fill={chart.brushAccent}
                                 style={{ cursor: "ew-resize" }}
                                 onMouseDown={startDrag("right")}
                             />
@@ -576,7 +612,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 x={0}
                                 y={plotH + 14}
                                 fontSize={10}
-                                fill="#6b6b6b"
+                                fill={chart.tick}
                             >
                                 {formatDay(fullDomain[0])}
                             </text>
@@ -584,7 +620,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 x={plotW}
                                 y={plotH + 14}
                                 fontSize={10}
-                                fill="#6b6b6b"
+                                fill={chart.tick}
                                 textAnchor="end"
                             >
                                 {formatDay(fullDomain[1])}
@@ -603,6 +639,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
 
 export default function DynamicPanel({ station, onClose }) {
     const rootRef = useRef(null);
+    const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -673,22 +710,27 @@ export default function DynamicPanel({ station, onClose }) {
         station?.dam_name ||
         "Station";
 
-    const visibleMetrics = METRICS.filter((m) => activeKeys.includes(m.key));
+    // Merge theme series colors into the metric configs at render.
+    const metrics = useMemo(
+        () => METRICS.map((m) => ({ ...m, color: theme.chart.series[m.key] })),
+        [theme]
+    );
+    const visibleMetrics = metrics.filter((m) => activeKeys.includes(m.key));
 
     return (
         <div
             ref={rootRef}
-            className="h-full w-full flex flex-col bg-ps-ice border-t border-ps-divider"
+            className="h-full w-full flex flex-col bg-page border-t border-ps-divider"
         >
             {/* Header */}
-            <div className="flex-shrink-0 bg-white border-b border-ps-divider">
+            <div className="flex-shrink-0 bg-panel border-b border-ps-divider">
                 <div className="flex items-center gap-5 px-6 py-3">
                     <div className="min-w-0 flex-1">
                         <div className="text-[10px] uppercase tracking-[0.12em] text-ps-bodyGray font-semibold">
                             Dynamic Time Series
                         </div>
                         <h2
-                            className="mt-0.5 text-[22px] font-light text-ps-charcoal leading-tight truncate"
+                            className="mt-0.5 text-[22px] font-light text-ps-charcoal leading-tight truncate font-display"
                             style={{ letterSpacing: "0.1px" }}
                             title={title}
                         >
@@ -701,7 +743,7 @@ export default function DynamicPanel({ station, onClose }) {
                             <div className="text-[10px] uppercase tracking-[0.1em] text-ps-bodyGray font-semibold">
                                 Period
                             </div>
-                            <div className="text-[13px] text-ps-charcoal tabular-nums">
+                            <div className="text-[13px] text-ps-charcoal font-data tabular-nums">
                                 {formatMonth(fullDomain[0])} — {formatMonth(fullDomain[1])}
                                 <span className="ml-2 text-ps-bodyGray">
                                     · {series.length} pts
@@ -711,7 +753,7 @@ export default function DynamicPanel({ station, onClose }) {
                     )}
 
                     <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
-                        {METRICS.map((m) => {
+                        {metrics.map((m) => {
                             const on = activeKeys.includes(m.key);
                             return (
                                 <button
@@ -722,7 +764,7 @@ export default function DynamicPanel({ station, onClose }) {
                                     title={on ? `Hide ${m.label}` : `Show ${m.label}`}
                                     className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-[12px] font-medium transition-all duration-[180ms] ease-ps ${
                                         on
-                                            ? "bg-white border-ps-mute text-ps-charcoal hover:bg-ps-cyan hover:text-white hover:border-white"
+                                            ? "bg-panel border-ps-mute text-ps-charcoal hover:bg-ps-cyan hover:text-on-accent hover:border-on-accent"
                                             : "bg-transparent border-ps-divider text-ps-bodyGray hover:text-ps-charcoal"
                                     }`}
                                     style={
@@ -737,7 +779,9 @@ export default function DynamicPanel({ station, onClose }) {
                                         className="h-2 w-2 rounded-full"
                                         style={{
                                             background: on ? m.color : "transparent",
-                                            border: on ? "none" : "1px solid #cccccc",
+                                            border: on
+                                                ? "none"
+                                                : "1px solid var(--line-strong)",
                                         }}
                                     />
                                     {m.label}
@@ -750,7 +794,7 @@ export default function DynamicPanel({ station, onClose }) {
                         type="button"
                         onClick={onClose}
                         aria-label="Close dynamic panel"
-                        className="flex-shrink-0 h-9 w-9 rounded-full border border-ps-divider bg-white text-ps-charcoal flex items-center justify-center transition-all duration-[180ms] ease-ps hover:bg-ps-cyan hover:text-white hover:border-white"
+                        className="flex-shrink-0 h-9 w-9 rounded-full border border-ps-divider bg-panel text-ps-charcoal flex items-center justify-center transition-all duration-[180ms] ease-ps hover:bg-ps-cyan hover:text-on-accent hover:border-on-accent"
                     >
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                             <path
