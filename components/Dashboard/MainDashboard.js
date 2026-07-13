@@ -8,6 +8,7 @@ import { loadStations, loadAllBoundaries, loadDynamicIndex } from "../../utils/d
 import { isOperational, isFutureStatus, DEFAULT_BASEMAP } from "../../utils/constants";
 import { assignFeature } from "../../utils/geoUtils";
 import { useTheme } from "../Theme/ThemeProvider";
+import useIsMobile from "../../utils/useIsMobile";
 
 const MapView = dynamic(() => import("../Map/MapView"), {
     ssr: false,
@@ -58,6 +59,8 @@ export default function MainDashboard() {
     const [summaryOpen, setSummaryOpen] = useState(false);
     const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
     const [scaleRange, setScaleRange] = useState({ min: null, max: null });
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const isMobile = useIsMobile();
 
     const mainRef = useRef(null);
     const handleRef = useRef(null);
@@ -277,7 +280,7 @@ export default function MainDashboard() {
 
     if (loading) {
         return (
-            <div className="h-screen w-screen flex items-center justify-center bg-transparent">
+            <div className="h-full w-full flex items-center justify-center bg-transparent">
                 <div className="text-center">
                     <div className="inline-block h-12 w-12 rounded-full border-2 border-ps-blue/30 border-t-ps-blue animate-spin" />
                     <p
@@ -296,7 +299,7 @@ export default function MainDashboard() {
 
     if (error) {
         return (
-            <div className="h-screen w-screen flex items-center justify-center bg-transparent p-6">
+            <div className="h-full w-full flex items-center justify-center bg-transparent p-6">
                 <div className="max-w-xl bg-panel rounded-ps-lg p-8 shadow-ps-3">
                     <div className="text-[11px] uppercase tracking-[0.12em] text-ps-red font-semibold">
                         Error
@@ -322,12 +325,25 @@ export default function MainDashboard() {
         : effectiveMain;
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-transparent">
+        // h-full (not h-screen): 100vh over-measures on mobile browsers while
+        // the URL bar is visible; the html/body/#__next 100% chain tracks the
+        // real viewport.
+        <div className="flex h-full w-full overflow-hidden bg-transparent">
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 z-[1190] bg-black/40 lg:hidden"
+                    aria-hidden="true"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
             <Sidebar
                 options={options}
                 update={update}
                 summaryOpen={summaryOpen}
                 onOpenSummary={() => setSummaryOpen((v) => !v)}
+                open={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                mobileHidden={isMobile && !sidebarOpen}
             />
 
             <main ref={mainRef} className="flex-1 flex flex-col relative min-w-0 min-h-0">
@@ -354,8 +370,27 @@ export default function MainDashboard() {
                         summaryVisible={summaryOpen}
                     />
 
+                    {/* Filters drawer trigger — mobile only */}
+                    <button
+                        type="button"
+                        onClick={() => setSidebarOpen(true)}
+                        aria-label="Open filters"
+                        aria-expanded={sidebarOpen}
+                        aria-controls="sidebar-drawer"
+                        className="lg:hidden absolute top-4 left-4 z-[500] h-11 w-11 glass-panel rounded-ps-md shadow-overlay flex items-center justify-center text-ps-charcoal"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                                d="M4 6h16M4 12h16M4 18h16"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                            />
+                        </svg>
+                    </button>
+
                     {/* Floating stats strip */}
-                    <div className="absolute top-4 left-4 glass-panel rounded-ps-md px-4 py-3 z-[400] shadow-overlay">
+                    <div className="absolute top-4 left-[68px] lg:left-4 glass-panel rounded-ps-md px-3 py-2 lg:px-4 lg:py-3 z-[400] shadow-overlay">
                         <div className="text-[10px] uppercase tracking-[0.1em] text-ps-bodyGray font-semibold">
                             {options.overview === "current"
                                 ? "Operational"
@@ -363,7 +398,7 @@ export default function MainDashboard() {
                         </div>
                         <div className="mt-0.5 flex items-baseline gap-2">
                             <div
-                                className="text-[26px] font-light text-ps-charcoal leading-none font-data tabular-nums"
+                                className="text-[22px] lg:text-[26px] font-light text-ps-charcoal leading-none font-data tabular-nums"
                                 style={{ letterSpacing: "-0.1px" }}
                             >
                                 {filteredStations.length.toLocaleString()}
@@ -391,6 +426,9 @@ export default function MainDashboard() {
                             onClose={() => setSelectedStation(null)}
                             onDynamicInfo={() => {
                                 setDynamicStation(selectedStation);
+                                // Phones: the sheet + charts would bury the
+                                // shrunken map — hand the map area back.
+                                if (isMobile) setSelectedStation(null);
                             }}
                             hasDynamic={!!hasDynamic(selectedStation)}
                         />
@@ -439,7 +477,7 @@ export default function MainDashboard() {
                                 userSelect: "none",
                                 cursor: "ns-resize",
                             }}
-                            className={`group flex-shrink-0 border-y border-ps-divider flex items-center justify-center relative z-[600] transition-colors duration-[180ms] ease-ps outline-none focus-visible:ring-2 focus-visible:ring-ps-blue ${
+                            className={`group flex-shrink-0 border-y border-ps-divider flex items-center justify-center relative z-[600] transition-colors duration-[180ms] ease-ps outline-none focus-visible:ring-2 focus-visible:ring-ps-blue max-lg:before:absolute max-lg:before:inset-x-0 max-lg:before:-top-3 max-lg:before:-bottom-2 max-lg:before:content-[''] ${
                                 isDragging
                                     ? "bg-ps-cyan"
                                     : "bg-ps-ice hover:bg-ps-cyan/30"

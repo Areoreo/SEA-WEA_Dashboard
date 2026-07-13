@@ -63,7 +63,15 @@ function Chip({ active, onClick, color, children, icon }) {
     );
 }
 
-export default function Sidebar({ options, update, summaryOpen, onOpenSummary }) {
+export default function Sidebar({
+    options,
+    update,
+    summaryOpen,
+    onOpenSummary,
+    open,
+    onClose,
+    mobileHidden,
+}) {
     const { theme } = useTheme();
     const toggleUse = (use) => {
         const next = options.selectedUses.includes(use)
@@ -86,7 +94,31 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
     const byBasin = options.spatialUnit === "basins";
 
     return (
-        <aside className="h-full w-[320px] shrink-0 bg-panel border-r border-line-soft overflow-y-auto shadow-ps-1">
+        // Below lg the aside leaves the flex flow and becomes an off-canvas
+        // drawer (opened by the hamburger in MainDashboard); at lg+ every
+        // max-lg: class is inert, so the desktop column is byte-identical.
+        <aside
+            id="sidebar-drawer"
+            aria-hidden={mobileHidden || undefined}
+            className={`h-full w-[320px] shrink-0 bg-panel border-r border-line-soft overflow-y-auto shadow-ps-1 max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-[1200] max-lg:max-w-[86vw] max-lg:transition-transform max-lg:duration-200 max-lg:ease-ps ${
+                open ? "" : "max-lg:-translate-x-full max-lg:pointer-events-none"
+            }`}
+        >
+            <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close filters"
+                className="lg:hidden absolute top-4 right-4 h-9 w-9 rounded-full border border-line bg-panel text-ps-charcoal flex items-center justify-center"
+            >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path
+                        d="M2 2L12 12M12 2L2 12"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                    />
+                </svg>
+            </button>
             <div className="p-6">
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.15em] text-ps-blue">
                     SEA-WEA
@@ -237,7 +269,7 @@ export default function Sidebar({ options, update, summaryOpen, onOpenSummary })
                 <select
                     value={options.selectedAttribute}
                     onChange={(e) => update("selectedAttribute", e.target.value)}
-                    className="w-full bg-panel border border-line-strong rounded-ps-sm py-2 px-3 text-[14px] text-ps-charcoal focus:outline-none focus:ring-2 focus:ring-ps-blue"
+                    className="w-full bg-panel border border-line-strong rounded-ps-sm py-2 px-3 text-[16px] lg:text-[14px] text-ps-charcoal focus:outline-none focus:ring-2 focus:ring-ps-blue"
                 >
                     {NUMERIC_ATTRIBUTES.map((a) => (
                         <option key={a.key} value={a.key}>

@@ -24,7 +24,9 @@ export default function StationPanel({ station, onClose, onDynamicInfo, hasDynam
     const title =
         station.reservoir_name || station.station_name || station.dam_name || "Station";
     return (
-        <div className="absolute top-4 right-4 w-[360px] max-h-[calc(100%-2rem)] overflow-y-auto bg-panel rounded-ps-lg z-[1100] shadow-pop animate-[panel-in_var(--dur-2)_ease]">
+        // Desktop: floating card top-right. Below lg: bottom sheet capped at
+        // 45% so the flown-to marker (map center) stays visible above it.
+        <div className="absolute top-4 right-4 w-[360px] max-h-[calc(100%-2rem)] overflow-y-auto bg-panel rounded-ps-lg z-[1100] shadow-pop animate-[panel-in_var(--dur-2)_ease] max-lg:top-auto max-lg:inset-x-0 max-lg:bottom-0 max-lg:w-auto max-lg:max-h-[45%] max-lg:rounded-b-none">
             <div
                 className="relative p-5 pr-14 text-white rounded-t-ps-lg"
                 style={{
@@ -63,7 +65,7 @@ export default function StationPanel({ station, onClose, onDynamicInfo, hasDynam
                 </div>
             </div>
 
-            <div className="p-5">
+            <div className="p-5 max-lg:pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
                 <Row label="Status" value={station.status} />
                 <Row label="Commission Year" value={station.commission_year} />
                 <Row label="Dam Name" value={station.dam_name} />

@@ -165,7 +165,13 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
     }, [ready, series, xDomain, xScale, yScale, metric.key]);
 
     const yTicks = useMemo(() => (yScale ? yScale.ticks(4) : []), [yScale]);
-    const xTicks = useMemo(() => (xScale ? xScale.ticks(6) : []), [xScale]);
+    // ~80px per "YYYY-MM" label — fewer ticks on narrow charts so neighbors
+    // never collide.
+    const xTickCount = Math.max(2, Math.min(6, Math.floor(plotW / 80)));
+    const xTicks = useMemo(
+        () => (xScale ? xScale.ticks(xTickCount) : []),
+        [xScale, xTickCount]
+    );
 
     // Hovered point (by shared index)
     const hoverPoint = useMemo(() => {
@@ -204,16 +210,26 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
         [ready, plotW, xScale, series, onHover, onLeave]
     );
 
+    // Touch pointers leave the moment the finger lifts — keep the crosshair
+    // (and tooltip) up after a tap; mouse leave still clears it.
+    const handleLeave = useCallback(
+        (evt) => {
+            if (evt.pointerType === "touch") return;
+            onLeave();
+        },
+        [onLeave]
+    );
+
     return (
         <section
             className="bg-panel rounded-ps-md border border-ps-divider overflow-hidden shadow-ps-1"
             aria-labelledby={`metric-${metric.key}`}
         >
-            <header className="flex items-start justify-between gap-4 px-5 pt-4 pb-2">
+            <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-4 sm:px-5 pt-4 pb-2">
                 <div className="min-w-0">
                     <h3
                         id={`metric-${metric.key}`}
-                        className="text-[22px] font-light text-ps-charcoal leading-tight font-display"
+                        className="text-[20px] sm:text-[22px] font-light text-ps-charcoal leading-tight font-display"
                         style={{ letterSpacing: "0.1px" }}
                     >
                         {metric.label}
@@ -223,7 +239,7 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
                     </h3>
                 </div>
                 {stats && (
-                    <dl className="flex items-start gap-5 text-right shrink-0">
+                    <dl className="flex flex-wrap items-start gap-x-4 sm:gap-x-5 gap-y-1 text-right shrink-0">
                         <Stat label="Latest" value={stats.last} unit={metric.unit} accent />
                         <Stat label="Avg" value={stats.avg} unit={metric.unit} />
                         <Stat label="Min" value={stats.min} unit={metric.unit} />
@@ -237,12 +253,16 @@ function MetricChart({ metric, series, xDomain, hoverIdx, onHover, onLeave }) {
                     <svg
                         width={width}
                         height={CHART_HEIGHT}
-                        onMouseMove={handleMove}
-                        onMouseLeave={onLeave}
+                        onPointerMove={handleMove}
+                        onPointerDown={handleMove}
+                        onPointerLeave={handleLeave}
                         style={{
                             display: "block",
                             cursor: "crosshair",
                             fontFamily: "var(--font-data)",
+                            // Horizontal drags scrub the crosshair; vertical
+                            // drags still scroll the panel.
+                            touchAction: "pan-y",
                         }}
                     >
                         <g transform={`translate(${CHART_MARGIN.left},${CHART_MARGIN.top})`}>
@@ -519,10 +539,12 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
         const onUp = () => {
             window.removeEventListener("pointermove", onMove);
             window.removeEventListener("pointerup", onUp);
+            window.removeEventListener("pointercancel", onUp);
             dragRef.current = null;
         };
         window.addEventListener("pointermove", onMove);
         window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onUp);
     };
 
     const handleBgClick = (e) => {
@@ -554,8 +576,14 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                     <svg
                         width={width}
                         height={BRUSH_HEIGHT}
-                        style={{ display: "block", fontFamily: "var(--font-data)" }}
-                        onMouseDown={handleBgClick}
+                        // touch-action none: the brush is all horizontal drags,
+                        // so the browser never takes them for scrolling.
+                        style={{
+                            display: "block",
+                            fontFamily: "var(--font-data)",
+                            touchAction: "none",
+                        }}
+                        onPointerDown={handleBgClick}
                     >
                         <g transform={`translate(${CHART_MARGIN.left},4)`}>
                             <rect
@@ -583,7 +611,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 stroke={chart.brushAccent}
                                 strokeWidth={1}
                                 style={{ cursor: "grab" }}
-                                onMouseDown={startDrag("move")}
+                                onPointerDown={startDrag("move")}
                             />
                             {/* Left handle */}
                             <rect
@@ -594,7 +622,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 rx={2}
                                 fill={chart.brushAccent}
                                 style={{ cursor: "ew-resize" }}
-                                onMouseDown={startDrag("left")}
+                                onPointerDown={startDrag("left")}
                             />
                             {/* Right handle */}
                             <rect
@@ -605,7 +633,7 @@ function TimeBrush({ series, fullDomain, domain, onChange, onReset }) {
                                 rx={2}
                                 fill={chart.brushAccent}
                                 style={{ cursor: "ew-resize" }}
-                                onMouseDown={startDrag("right")}
+                                onPointerDown={startDrag("right")}
                             />
                             {/* Labels */}
                             <text
@@ -724,13 +752,13 @@ export default function DynamicPanel({ station, onClose }) {
         >
             {/* Header */}
             <div className="flex-shrink-0 bg-panel border-b border-ps-divider">
-                <div className="flex items-center gap-5 px-6 py-3">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 sm:px-6 py-3">
                     <div className="min-w-0 flex-1">
                         <div className="text-[10px] uppercase tracking-[0.12em] text-ps-bodyGray font-semibold">
                             Dynamic Time Series
                         </div>
                         <h2
-                            className="mt-0.5 text-[22px] font-light text-ps-charcoal leading-tight truncate font-display"
+                            className="mt-0.5 text-[18px] sm:text-[22px] font-light text-ps-charcoal leading-tight truncate font-display"
                             style={{ letterSpacing: "0.1px" }}
                             title={title}
                         >
@@ -752,7 +780,9 @@ export default function DynamicPanel({ station, onClose }) {
                         </div>
                     )}
 
-                    <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
+                    {/* Below sm the chips drop to their own full-width row
+                        (order-last) instead of disappearing. */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0 max-sm:order-last max-sm:w-full max-sm:flex-wrap">
                         {metrics.map((m) => {
                             const on = activeKeys.includes(m.key);
                             return (
@@ -835,7 +865,7 @@ export default function DynamicPanel({ station, onClose }) {
                         </p>
                     </div>
                 ) : (
-                    <div className="p-5 space-y-4">
+                    <div className="p-3 sm:p-5 space-y-4">
                         <div className="grid gap-4 grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
                             {visibleMetrics.map((m) => (
                                 <MetricChart

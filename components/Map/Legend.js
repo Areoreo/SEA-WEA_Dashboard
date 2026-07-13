@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     MAIN_USES,
     USE_LABEL,
@@ -39,6 +39,12 @@ export default function Legend({
 }) {
     const [open, setOpen] = useState(true);
     const { theme } = useTheme();
+
+    // Phones start with the legend collapsed — expanded it covers most of the
+    // map. One-time on mount; the user's toggle wins afterwards.
+    useEffect(() => {
+        if (window.matchMedia("(max-width: 1023px)").matches) setOpen(false);
+    }, []);
     const attrMeta = NUMERIC_ATTRIBUTES.find((a) => a.key === attributeKey);
     const attrLabel = attrMeta?.label || attributeKey;
     const summaryMode = attrMeta?.summary === "sum" ? "sum" : "count";
@@ -57,7 +63,7 @@ export default function Legend({
         <div
             className="absolute bottom-6 left-4 z-[400] glass-panel rounded-ps-md overflow-hidden shadow-float"
             style={{
-                width: open ? 260 : "auto",
+                width: open ? "min(260px, calc(100vw - 2rem))" : "auto",
             }}
         >
             <button
